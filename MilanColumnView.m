@@ -116,7 +116,7 @@
 	MilanEntry *e = [entries objectAtIndex: r];
 	NSString *i = [c identifier];
 	if ([i isEqualToString: @"icon"]) return [MilanIcons iconForEntry: e];
-	if ([i isEqualToString: @"name"]) return e->name;
+	if ([i isEqualToString: @"name"]) return [e displayName];
 	return e->isDir && !e->isApp ? @"›" : @"";
 }
 

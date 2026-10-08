@@ -70,8 +70,14 @@ MilanRunOnMain(void (^block)(void))
 
 - (void) dealloc
 {
-	[name release]; [path release]; [kind release]; [dateString release]; [sizeString release];
+	[name release]; [path release]; [dispName release]; [kind release]; [dateString release]; [sizeString release];
 	[super dealloc];
+}
+
+- (NSString *) displayName
+{
+	if (!dispName) dispName = [MilanNFC(name) retain];
+	return dispName;
 }
 
 - (NSString *) kind
@@ -157,7 +163,7 @@ make_entry(const char *dir, const char *cname, NSString *dirPath)
 		default: break;
 		}
 		if (r == NSOrderedSame)
-			r = [x->name compare: y->name options: NSCaseInsensitiveSearch | NSNumericSearch];
+			r = [[x displayName] compare: [y displayName] options: NSCaseInsensitiveSearch | NSNumericSearch];
 		return asc ? r : (NSComparisonResult)-r;
 	}];
 }

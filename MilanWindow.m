@@ -285,7 +285,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 	} else if ([path isEqualToString: MilanTrashPath]) {
 		[window setTitle: @"Trash"];
 	} else {
-		[window setTitle: [path isEqualToString: @"/"] ? @"/" : [path lastPathComponent]];
+		[window setTitle: [path isEqualToString: @"/"] ? @"/" : MilanNFC([path lastPathComponent])];
 		[window setRepresentedFilename: path];
 	}
 	[self load: YES];
@@ -479,7 +479,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 	NSUInteger n = [s count];
 	if (n == 1) {
 		MilanEntry *e = [s objectAtIndex: 0];
-		[status setStringValue: [NSString stringWithFormat: @"%@ – %@", e->name, e->isDir ? [e kind] : [e sizeString]]];
+		[status setStringValue: [NSString stringWithFormat: @"%@ – %@", [e displayName], e->isDir ? [e kind] : [e sizeString]]];
 	} else if (n)
 		[status setStringValue: [NSString stringWithFormat: @"%lu of %lu selected", (unsigned long)n, (unsigned long)[entries count]]];
 	else
@@ -693,7 +693,7 @@ isPicture(MilanEntry *e)
 	    styleMask: NSTitledWindowMask backing: NSBackingStoreBuffered defer: NO] autorelease];
 	[pn setTitle: @"Rename"];
 	tf = [[[NSTextField alloc] initWithFrame: NSMakeRect(16, 48, 288, 22)] autorelease];
-	[tf setStringValue: e->name];
+	[tf setStringValue: [e displayName]];
 	ok = barButton(@"Rename", NSMakeRect(224, 12, 80, 26), NSApp, @selector(stopModalWithCode:), nil);
 	cancel = barButton(@"Cancel", NSMakeRect(136, 12, 80, 26), NSApp, @selector(stopModalWithCode:), nil);
 	[ok setTag: 1]; [cancel setTag: 0];
@@ -705,7 +705,7 @@ isPicture(MilanEntry *e)
 	[pn makeFirstResponder: tf];
 	r = [NSApp runModalForWindow: pn];
 	[pn orderOut: nil];
-	if (r == 1 && [[tf stringValue] length] && ![[tf stringValue] isEqualToString: e->name]
+	if (r == 1 && [[tf stringValue] length] && ![MilanNFC([tf stringValue]) isEqualToString: [e displayName]]
 	    && [[tf stringValue] rangeOfString: @"/"].location == NSNotFound)
 		[MilanFileOps renamePath: e->path to: [tf stringValue] done: ^(NSString *err) { [self report: err]; [self load: NO]; }];
 }

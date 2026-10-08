@@ -14,8 +14,11 @@ typedef enum { MilanSortName, MilanSortSize, MilanSortDate, MilanSortKind } Mila
 	uid_t uid;
 	gid_t gid;
 	BOOL isDir, isLink, isApp, isHidden, isVolume;
-	NSString *kind, *dateString, *sizeString;	/* lazy */
+	NSString *kind, *dateString, *sizeString, *dispName;	/* lazy */
 }
+/* The name for display: precomposed (NFC). HFS+ stores names decomposed (NFD), and GNUstep's text drawing does not
+ * shape, so "e" + combining acute would draw with a detached accent. `name` stays the real file name. */
+- (NSString *) displayName;
 - (NSString *) kind;
 - (NSString *) dateString;
 - (NSString *) sizeString;
@@ -32,6 +35,9 @@ typedef enum { MilanSortName, MilanSortSize, MilanSortDate, MilanSortKind } Mila
 /* Runs a block on the main thread. Use this, not dispatch_async(main queue), from background work:
  * GNUstep's run loop is not woken reliably by main-queue blocks, so completions arrive late. */
 void MilanRunOnMain(void (^block)(void));
+
+/* Canonical composition (NFC) of a string; see MilanNFC.m. */
+NSString *MilanNFC(NSString *s);
 
 NSString *MilanFormatSize(unsigned long long bytes);
 NSString *MilanFormatDate(time_t t);

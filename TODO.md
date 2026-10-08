@@ -20,6 +20,15 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
+- Unicode: validated on the Pi with names in Latin with accents, Greek, Cyrillic, Hebrew, Arabic, CJK, Korean, emoji, ZWJ
+  emoji and combining marks (`/tmp/uni`). Findings: names come back decomposed (NFD) from the filesystem, so accents
+  drew detached; fixed by showing names precomposed (`MilanNFC.m`, tables from `tools/gen_nfc.py`; this GNUstep base has no
+  ICU, so `precomposedStringWithCanonicalMapping` is not implemented). Still broken: **Hebrew, Arabic, CJK, Korean and all
+  emoji draw as `?`**, because the only fonts on the image are DejaVu and GNUstep text drawing does no per-character font
+  fallback. Needs a decision on fonts to ship (OFL: Noto Sans Hebrew/Arabic, Noto Sans CJK subset, Noto Emoji monochrome;
+  or GNU Unifont as a last resort) plus a fallback in Milan's own text drawing (split a name into runs by glyph
+  availability). Also not yet checked: RTL ordering, emoji sequences, rename/new-folder with non-ASCII, sorting order across scripts.
+
 - JPEG support. GNUstep-gui is built `--disable-jpeg` (`build_gnustep_gui.sh`) and nothing builds libjpeg, so `NSImage`
   cannot read .jpg/.jpeg: wallpapers, thumbnails and Quick Look are PNG/TIFF only today. Plan: add `build_libjpeg.sh` in the
   iokit staging tree (libjpeg-turbo: BSD/IJG/zlib licensed, plain C, optional NEON), drop `--disable-jpeg` and rebuild

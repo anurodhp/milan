@@ -102,7 +102,7 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	                                     backing: NSBackingStoreBuffered defer: NO];
 	cascade = (cascade + 1) % 10;
 	[panel setReleasedWhenClosed: NO];
-	[panel setTitle: [NSString stringWithFormat: @"%@ Info", e->name]];
+	[panel setTitle: [NSString stringWithFormat: @"%@ Info", [e displayName]]];
 	[panel setDelegate: self];
 	v = [panel contentView];
 	{
@@ -112,7 +112,7 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 		[iv setImageScaling: NSImageScaleProportionallyUpOrDown];
 		[v addSubview: iv];
 		{
-			NSTextField *nm = label(e->name, NSMakeRect(82, H - 48, W - 98, 18), YES, NSLeftTextAlignment);
+			NSTextField *nm = label([e displayName], NSMakeRect(82, H - 48, W - 98, 18), YES, NSLeftTextAlignment);
 			[nm setSelectable: NO];
 			[v addSubview: nm];
 		}

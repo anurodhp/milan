@@ -190,10 +190,10 @@
 				shadow = [[NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 11], NSFontAttributeName,
 				    ps, NSParagraphStyleAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, nil] retain];
 			}
-			[e->name drawInRect: NSOffsetRect(tr, 1, 1) withAttributes: shadow];
-			[e->name drawInRect: tr withAttributes: white];
+			[[e displayName] drawInRect: NSOffsetRect(tr, 1, 1) withAttributes: shadow];
+			[[e displayName] drawInRect: tr withAttributes: white];
 		} else
-			[e->name drawInRect: tr withAttributes: s ? selAttrs : attrs];
+			[[e displayName] drawInRect: tr withAttributes: s ? selAttrs : attrs];
 	}
 	if (rubber) {
 		[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.2] set];
@@ -331,7 +331,7 @@
 	else [typed appendString: ch];
 	typedAt = now;
 	for (i = 0; i < [entries count]; i++)
-		if ([((MilanEntry *)[entries objectAtIndex: i])->name rangeOfString: typed options: NSCaseInsensitiveSearch | NSAnchoredSearch].location != NSNotFound) {
+		if ([[(MilanEntry *)[entries objectAtIndex: i] displayName] rangeOfString: typed options: NSCaseInsensitiveSearch | NSAnchoredSearch].location != NSNotFound) {
 			[sel removeAllIndexes]; [sel addIndex: i]; anchor = i;
 			[self scrollRectToVisible: [self cellRect: i]];
 			[self setNeedsDisplay: YES];

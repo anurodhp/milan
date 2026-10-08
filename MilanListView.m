@@ -205,7 +205,7 @@
 	MilanEntry *e = [entries objectAtIndex: r];
 	NSString *i = [c identifier];
 	if ([i isEqualToString: @"icon"]) return [MilanIcons iconForEntry: e];
-	if ([i isEqualToString: @"name"]) return e->name;
+	if ([i isEqualToString: @"name"]) return [e displayName];
 	if ([i isEqualToString: @"date"]) return [e dateString];
 	if ([i isEqualToString: @"size"]) return [e sizeString];
 	return [e kind];
