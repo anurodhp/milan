@@ -21,7 +21,7 @@ Xlib calls because GNUstep has no shape API. Drawing the wallpaper ourselves is 
 1. **Spike (half a day).** `-MilanDesktop YES`: a full-screen `NSWindow` at `NSDesktopWindowLevel`,
    `NSBorderlessWindowMask`, filled with a colour. Verify on the Pi: sits below everything, no decoration,
    visible on every workspace, does not appear in the window list, other windows and the dock stay on top,
-   size matches the real screen (`NSScreen` frame; note the 960 vs 1280 width question below).
+   size matches the real screen (`NSScreen` frame, 1280x720).
 2. **Wallpaper.** Draw an image scaled once to the screen size and cached (`MilanWallpaper`); default
    `MilanWallpaper` path preference, solid-colour fallback. Redraw only on screen-size change (RANDR).
 3. **Desktop icons.** Reuse `MilanIconGrid` over `~/Desktop` with a transparent background and light label
@@ -38,8 +38,8 @@ Xlib calls because GNUstep has no shape API. Drawing the wallpaper ourselves is 
    at launch when `MilanDesktop` is set).
 
 ## Risks / unknowns
-- Screen size: `xdpyinfo` says 1280x720 but screenshots show content only in the left 960 px. Find out whether
-  that is the HDMI mode or my screenshot decoder before sizing anything. (`NSScreen` is the source of truth.)
+- Screen size: resolved. The display is 1280x720; the earlier "960 wide" was a screenshot-decoder bug (xwd root is
+  24 bits per pixel, 4-byte rows padded). Still size the desktop from `NSScreen`, not a constant.
 - Windows created right after launch painted late/blank in several tests (see `TODO.md` notes). The desktop
   window is created at launch, so check it paints; if not, force `display` after the first run-loop turn.
 - Clicks on empty desktop must not steal focus from the app the user was in (use `acceptsFirstMouse` and
