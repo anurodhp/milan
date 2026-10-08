@@ -128,6 +128,17 @@
 		}
 }
 
+- (void) setSortKey: (MilanSort)key ascending: (BOOL)asc
+{
+	NSArray *ids = [NSArray arrayWithObjects: @"name", @"size", @"date", @"kind", nil];
+	NSString *id_ = [ids objectAtIndex: key];
+	NSTableColumn *c;
+	for (c in [table tableColumns])
+		[table setIndicatorImage: nil inTableColumn: c];
+	[table setIndicatorImage: [NSImage imageNamed: asc ? @"NSAscendingSortIndicator" : @"NSDescendingSortIndicator"]
+	           inTableColumn: [table tableColumnWithIdentifier: id_]];
+}
+
 - (void) openSelected: (id)sender
 {
 	NSArray *s = [self selectedEntries];

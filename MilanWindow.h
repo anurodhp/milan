@@ -27,6 +27,7 @@
 	NSScrollView *sidebar;
 	NSTableView *sidebarTable;
 	NSArray *favorites;
+	BOOL syncingSidebar;
 }
 - (id) initWithPath: (NSString *)p;
 - (NSWindow *) window;

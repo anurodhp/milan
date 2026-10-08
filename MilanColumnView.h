@@ -16,4 +16,5 @@
 - (void) column: (MilanColumn *)c selectionChanged: (NSArray *)sel;
 - (void) column: (MilanColumn *)c open: (NSArray *)sel;
 - (NSMenu *) menu;
+- (id <MilanContentDelegate>) contentDelegate;
 @end

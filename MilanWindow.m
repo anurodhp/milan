@@ -216,6 +216,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 	setEnabledIcon(backBtn, hIndex > 0);
 	setEnabledIcon(fwdBtn, hIndex < (NSInteger)[history count] - 1);
 	setEnabledIcon(upBtn, ![path isEqualToString: @"/"]);
+	[self syncSidebar];
 	[window setTitle: [path isEqualToString: @"/"] ? @"/" : [path lastPathComponent]];
 	[window setRepresentedFilename: path];
 	[self load: YES];
@@ -243,7 +244,19 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (void) tableViewSelectionDidChange: (NSNotification *)n
 {
 	NSInteger r = [sidebarTable selectedRow];
-	if (r >= 0) [self goTo: [[favorites objectAtIndex: r] objectAtIndex: 1]];
+	if (r >= 0 && !syncingSidebar) [self goTo: [[favorites objectAtIndex: r] objectAtIndex: 1]];
+}
+
+- (void) syncSidebar
+{
+	NSUInteger i;
+	NSInteger row = -1;
+	for (i = 0; i < [favorites count]; i++)
+		if ([[[favorites objectAtIndex: i] objectAtIndex: 1] isEqualToString: path]) row = i;
+	syncingSidebar = YES;
+	if (row >= 0) [sidebarTable selectRowIndexes: [NSIndexSet indexSetWithIndex: row] byExtendingSelection: NO];
+	else [sidebarTable deselectAll: nil];
+	syncingSidebar = NO;
 }
 
 /* ---- loading ---- */
@@ -280,6 +293,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (void) contentSortBy: (MilanSort)key
 {
 	if (key == sortKey) ascending = !ascending; else { sortKey = key; ascending = YES; }
+	if ([views[1] respondsToSelector: @selector(setSortKey:ascending:)]) [(id)views[1] setSortKey: sortKey ascending: ascending];
 	[self load: NO];
 }
 

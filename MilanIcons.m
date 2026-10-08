@@ -48,9 +48,27 @@ extensionKinds(void)
 {
 	NSString *kind;
 	NSImage *img;
-	if (e->isApp) kind = @"app";
-	else if (e->isDir) kind = @"folder";
-	else {
+	if (e->isApp) {
+		static NSMutableDictionary *appIcons;
+		id cached;
+		if (!appIcons) appIcons = [[NSMutableDictionary alloc] init];
+		if ((cached = [appIcons objectForKey: e->path]))
+			return cached == [NSNull null] ? [self imageNamed: @"ft-app"] : cached;
+		{
+			NSBundle *b = [NSBundle bundleWithPath: e->path];
+			NSDictionary *info = [b infoDictionary];
+			NSString *f = [info objectForKey: @"NSIcon"], *p = nil;
+			NSImage *ai = nil;
+			if (!f) f = [info objectForKey: @"CFBundleIconFile"];
+			if ([f length]) p = [b pathForResource: [f stringByDeletingPathExtension] ofType: [[f pathExtension] length] ? [f pathExtension] : nil];
+			if (p) ai = [[[NSImage alloc] initWithContentsOfFile: p] autorelease];
+			[appIcons setObject: ai ? (id)ai : (id)[NSNull null] forKey: e->path];
+			if (ai) return ai;
+		}
+		kind = @"app";
+	} else if (e->isDir) {
+		kind = @"folder";
+	} else {
 		kind = [extensionKinds() objectForKey: [[e->name pathExtension] lowercaseString]];
 		if (!kind) kind = (e->mode & 0111) ? @"exec" : @"file";
 	}
