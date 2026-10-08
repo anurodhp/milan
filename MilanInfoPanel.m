@@ -97,17 +97,16 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	                  [NSString stringWithFormat: @"%s : %s", pw ? pw->pw_name : "?", gr ? gr->gr_name : "?"], nil]];
 
 	n = [rows count];
-	panel = [[NSPanel alloc] initWithContentRect: NSMakeRect(200 + cascade * 24, 400 - cascade * 24, W, top + n * rowH + 16)
-	                                   styleMask: NSTitledWindowMask | NSClosableWindowMask | NSUtilityWindowMask
+	panel = (NSPanel *)[[NSWindow alloc] initWithContentRect: NSMakeRect(200 + cascade * 24, 400 - cascade * 24, W, top + n * rowH + 36)
+	                                   styleMask: NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
 	                                     backing: NSBackingStoreBuffered defer: NO];
 	cascade = (cascade + 1) % 10;
 	[panel setReleasedWhenClosed: NO];
 	[panel setTitle: [NSString stringWithFormat: @"%@ Info", e->name]];
 	[panel setDelegate: self];
-	[panel setBecomesKeyOnlyIfNeeded: NO];
 	v = [panel contentView];
 	{
-		CGFloat H = top + n * rowH + 16;
+		CGFloat H = top + n * rowH + 36;
 		NSImageView *iv = [[[NSImageView alloc] initWithFrame: NSMakeRect(16, H - 72, 56, 56)] autorelease];
 		[iv setImage: [MilanIcons iconForEntry: e]];
 		[iv setImageScaling: NSImageScaleProportionallyUpOrDown];
@@ -125,10 +124,13 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 		}
 	}
 	[panel makeKeyAndOrderFront: nil];
+	[panel display];
+	if (getenv("MILAN_TRACE")) NSLog(@"info panel frame %@ content %@", NSStringFromRect([panel frame]), NSStringFromRect([[panel contentView] frame]));
 
 	if (e->isDir) {
 		NSString *path = [e->path copy];
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 			unsigned long long items = 0, total;
 			NSString *s;
 			total = tree_size([path fileSystemRepresentation], &cancelled, &items);
@@ -140,6 +142,7 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 				});
 			}
 			[path release];
+			[pool release];
 		});
 	}
 	return self;

@@ -4,6 +4,7 @@
 #import "MilanColumnView.h"
 #import "MilanFileOps.h"
 #import "MilanInfoPanel.h"
+#import "MilanIcons.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <dispatch/dispatch.h>
@@ -25,6 +26,32 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 	return b;
 }
 
+#define TRACE(s) do { if (getenv("MILAN_TRACE")) NSLog(@"milan: %s", s); } while (0)
+
+static NSButton *
+iconButton(NSString *name, NSRect r, id target, SEL action, NSString *tip)
+{
+	NSButton *b = [[[NSButton alloc] initWithFrame: r] autorelease];
+	[b setBordered: NO];
+	[b setButtonType: NSMomentaryChangeButton];
+	[b setImagePosition: NSImageOnly];
+	[b setImage: [MilanIcons imageNamed: [NSString stringWithFormat: @"tb-%@-normal", name]]];
+	[b setAlternateImage: [MilanIcons imageNamed: [NSString stringWithFormat: @"tb-%@-pressed", name]]];
+	[b setTarget: target];
+	[b setAction: action];
+	[b setToolTip: tip];
+	[b setIdentifier: name];
+	return b;
+}
+
+static void
+setEnabledIcon(NSButton *b, BOOL on)
+{
+	NSString *n = [b identifier];
+	[b setEnabled: on];
+	[b setImage: [MilanIcons imageNamed: [NSString stringWithFormat: @"tb-%@-%@", n, on ? @"normal" : @"disabled"]]];
+}
+
 - (id) initWithPath: (NSString *)p
 {
 	NSRect fr = NSMakeRect(120, 160, 860, 560);
@@ -37,52 +64,63 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 	hIndex = -1;
 	ascending = YES;
 	fr.origin.x += cascade * 24; fr.origin.y -= cascade * 24;
+	{
+		NSString *o = [[NSUserDefaults standardUserDefaults] stringForKey: @"MilanOrigin"];	/* "x,y" */
+		NSArray *xy = [o componentsSeparatedByString: @","];
+		if ([xy count] == 2) { fr.origin.x = [[xy objectAtIndex: 0] doubleValue]; fr.origin.y = [[xy objectAtIndex: 1] doubleValue]; }
+	}
 	cascade = (cascade + 1) % 8;
 	window = [[NSWindow alloc] initWithContentRect: fr
 	    styleMask: NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
 	    backing: NSBackingStoreBuffered defer: NO];
+	TRACE("window created");
 	[window setReleasedWhenClosed: NO];
 	[window setDelegate: self];
 	[window setMinSize: NSMakeSize(480, 280)];
 	cv = [window contentView];
 
-	/* top panel: navigation, view mode, path, actions */
+	/* top panel: navigation, view mode, actions (Lucide glyphs, see tools/make_icons.sh) */
 	bar = [[[NSView alloc] initWithFrame: NSMakeRect(0, NSHeight([cv bounds]) - BAR_H, NSWidth([cv bounds]), BAR_H)] autorelease];
 	[bar setAutoresizingMask: NSViewWidthSizable | NSViewMinYMargin];
-	backBtn = barButton(@"◀", NSMakeRect(x, 8, 30, 24), self, @selector(goBack:), @"Back"); x += 30;
-	fwdBtn = barButton(@"▶", NSMakeRect(x, 8, 30, 24), self, @selector(goForward:), @"Forward"); x += 30;
-	[bar addSubview: backBtn]; [bar addSubview: fwdBtn];
-	[bar addSubview: barButton(@"▲", NSMakeRect(x, 8, 30, 24), self, @selector(goUp:), @"Enclosing folder")]; x += 38;
-	modeSeg = [[[NSSegmentedControl alloc] initWithFrame: NSMakeRect(x, 8, 120, 24)] autorelease];
+	TRACE("bar created");
+	backBtn = iconButton(@"back", NSMakeRect(x, 6, 30, 28), self, @selector(goBack:), @"Back"); x += 30;
+	fwdBtn = iconButton(@"forward", NSMakeRect(x, 6, 30, 28), self, @selector(goForward:), @"Forward"); x += 30;
+	upBtn = iconButton(@"up", NSMakeRect(x, 6, 30, 28), self, @selector(goUp:), @"Enclosing folder"); x += 42;
+	[bar addSubview: backBtn]; [bar addSubview: fwdBtn]; [bar addSubview: upBtn];
+	modeSeg = [[[NSSegmentedControl alloc] initWithFrame: NSMakeRect(x, 6, 108, 28)] autorelease];
 	[modeSeg setSegmentCount: 3];
-	[modeSeg setLabel: @"Icons" forSegment: 0];
-	[modeSeg setLabel: @"List" forSegment: 1];
-	[modeSeg setLabel: @"Cols" forSegment: 2];
+	{
+		NSString *n[] = { @"icons", @"list", @"columns" };
+		NSString *tips[] = { @"as Icons", @"as List", @"as Columns" };
+		int i;
+		for (i = 0; i < 3; i++) {
+			[modeSeg setImage: [MilanIcons imageNamed: [NSString stringWithFormat: @"tb-%@-normal", n[i]]] forSegment: i];
+			[modeSeg setWidth: 36 forSegment: i];
+		}
+		(void)tips;
+	}
 	[modeSeg setSelectedSegment: 0];
 	[modeSeg setTarget: self];
 	[modeSeg setAction: @selector(setViewMode:)];
 	[bar addSubview: modeSeg];
-	x += 128;
-	pathField = [[[NSTextField alloc] initWithFrame: NSMakeRect(x, 9, NSWidth([bar bounds]) - x - 232, 22)] autorelease];
-	[pathField setAutoresizingMask: NSViewWidthSizable];
-	[pathField setTarget: self];
-	[pathField setAction: @selector(pathEntered:)];
-	[bar addSubview: pathField];
+	TRACE("segmented");
 	{
-		CGFloat rx = NSWidth([bar bounds]) - 224;
-		NSArray *t = [NSArray arrayWithObjects: @"New", @"Info", @"Copy", @"Paste", @"Trash", nil];
+		NSString *n[] = { @"newfolder", @"info", @"copy", @"paste", @"trash" };
+		NSString *tip[] = { @"New Folder", @"Get Info", @"Copy", @"Paste", @"Move to Trash" };
 		SEL sels[] = { @selector(newFolder:), @selector(getInfo:), @selector(copyFiles:),
 		               @selector(pasteFiles:), @selector(trashSelection:) };
-		NSUInteger i;
+		CGFloat rx = NSWidth([bar bounds]) - 5 * 34 - 8;
+		int i;
 		for (i = 0; i < 5; i++) {
-			NSButton *b = barButton([t objectAtIndex: i], NSMakeRect(rx, 8, 44, 24), self, sels[i], [t objectAtIndex: i]);
+			NSButton *b = iconButton(n[i], NSMakeRect(rx, 6, 32, 28), self, sels[i], tip[i]);
 			[b setAutoresizingMask: NSViewMinXMargin];
-			[[b cell] setFont: [NSFont systemFontOfSize: 10]];
 			[bar addSubview: b];
-			rx += 44;
+			rx += 34;
 		}
 	}
+	TRACE("action buttons");
 	[cv addSubview: bar];
+	TRACE("bar added");
 
 	host = [[[NSView alloc] initWithFrame: NSMakeRect(0, STATUS_H, NSWidth([cv bounds]), NSHeight([cv bounds]) - BAR_H - STATUS_H)] autorelease];
 	[host setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
@@ -94,17 +132,25 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 	[status setAutoresizingMask: NSViewWidthSizable | NSViewMaxYMargin];
 	[cv addSubview: status];
 
-	views[0] = [[MilanIconView alloc] initWithFrame: NSMakeRect(0, 0, 100, 100)];
+	TRACE("status added");
+	views[0] = [[MilanIconView alloc] init];
+	TRACE("icon view");
 	views[1] = [[MilanListView alloc] init];
+	TRACE("list view");
 	views[2] = [[MilanColumnView alloc] init];
 	{
 		int i;
 		for (i = 0; i < 3; i++) [views[i] setDelegate: self];
 	}
+	TRACE("views built");
 	[self buildContextMenu];
+	TRACE("menu built");
 	[self switchToMode: 0];
+	TRACE("mode switched");
 	[self goTo: p];
+	TRACE("went to path");
 	[window makeKeyAndOrderFront: nil];
+	TRACE("window ordered front");
 	return self;
 }
 
@@ -139,10 +185,11 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 {
 	[path release];
 	path = [[history objectAtIndex: hIndex] retain];
-	[backBtn setEnabled: hIndex > 0];
-	[fwdBtn setEnabled: hIndex < (NSInteger)[history count] - 1];
-	[pathField setStringValue: path];
+	setEnabledIcon(backBtn, hIndex > 0);
+	setEnabledIcon(fwdBtn, hIndex < (NSInteger)[history count] - 1);
+	setEnabledIcon(upBtn, ![path isEqualToString: @"/"]);
 	[window setTitle: [path isEqualToString: @"/"] ? @"/" : [path lastPathComponent]];
+	[window setRepresentedFilename: path];
 	[self load: YES];
 	[self watchPath];
 }
@@ -153,14 +200,6 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 - (void) goHome: (id)s { [self goTo: NSHomeDirectory()]; }
 - (void) goApplications: (id)s { [self goTo: @"/Applications"]; }
 - (void) goRoot: (id)s { [self goTo: @"/"]; }
-
-- (void) pathEntered: (id)s
-{
-	BOOL dir;
-	NSString *p = [[[pathField stringValue] stringByExpandingTildeInPath] stringByStandardizingPath];
-	if ([[NSFileManager defaultManager] fileExistsAtPath: p isDirectory: &dir] && dir) [self goTo: p];
-	else { NSBeep(); [pathField setStringValue: path]; }
-}
 
 /* ---- loading ---- */
 
@@ -235,6 +274,7 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 	[window makeFirstResponder: [cur view] == nil ? nil : ([[cur view] isKindOfClass: [NSScrollView class]] ? [(NSScrollView *)[cur view] documentView] : [cur view])];
 }
 
+- (void) setMode: (int)m { if (m >= 0 && m < 3) [self switchToMode: m]; }
 - (void) setViewMode: (id)s { [self switchToMode: (int)[modeSeg selectedSegment]]; }
 - (void) viewAsIcons: (id)s { [self switchToMode: 0]; }
 - (void) viewAsList: (id)s { [self switchToMode: 1]; }

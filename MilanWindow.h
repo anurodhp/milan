@@ -12,9 +12,9 @@
 	id <MilanContent> views[3];
 	id <MilanContent> cur;
 	NSView *host;
-	NSTextField *pathField, *status;
+	NSTextField *status;
 	NSSegmentedControl *modeSeg;
-	NSButton *backBtn, *fwdBtn;
+	NSButton *backBtn, *fwdBtn, *upBtn;
 	BOOL showHidden, ascending, reloadPending;
 	MilanSort sortKey;
 	NSArray *entries;
@@ -36,6 +36,7 @@
 - (void) goApplications: (id)s;
 - (void) goRoot: (id)s;
 - (void) setViewMode: (id)s;
+- (void) setMode: (int)m;
 - (void) viewAsIcons: (id)s;
 - (void) viewAsList: (id)s;
 - (void) viewAsColumns: (id)s;

@@ -131,11 +131,16 @@
 
 - (void) relayout
 {
-	NSSize vs = [scroll contentSize];
+	NSSize vs, want;
 	NSUInteger i;
-	[doc setFrameSize: NSMakeSize(MAX(vs.width, [columns count] * COL_W), vs.height)];
+	if (relaying) return;
+	relaying = YES;
+	vs = [scroll contentSize];
+	want = NSMakeSize(MAX(vs.width, [columns count] * COL_W), vs.height);
+	if (!NSEqualSizes(want, [doc frame].size)) [doc setFrameSize: want];
 	for (i = 0; i < [columns count]; i++)
 		[((MilanColumn *)[columns objectAtIndex: i])->scroll setFrame: NSMakeRect(i * COL_W, 0, COL_W, vs.height)];
+	relaying = NO;
 }
 
 - (void) truncateTo: (NSUInteger)n

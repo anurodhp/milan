@@ -11,6 +11,7 @@
 	NSMutableArray *columns;	/* MilanColumn */
 	id <MilanContentDelegate> delegate;
 	unsigned gen;
+	BOOL relaying;
 }
 - (void) column: (MilanColumn *)c selectionChanged: (NSArray *)sel;
 - (void) column: (MilanColumn *)c open: (NSArray *)sel;

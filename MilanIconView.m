@@ -6,90 +6,68 @@
 #define ICON 48.0
 #define PAD 12.0
 
-@implementation MilanIconView
+@implementation MilanIconGrid
 
 - (id) initWithFrame: (NSRect)f
 {
 	self = [super initWithFrame: f];
 	sel = [[NSMutableIndexSet alloc] init];
 	anchor = -1;
-	scroll = [[NSScrollView alloc] initWithFrame: f];
-	[scroll setHasVerticalScroller: YES];
-	[scroll setAutohidesScrollers: YES];
-	[scroll setBorderType: NSNoBorder];
-	[scroll setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
-	[scroll setDocumentView: self];
-	[self setPostsFrameChangedNotifications: YES];
-	[[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(relayout:)
-	    name: NSViewFrameDidChangeNotification object: [scroll contentView]];
-	[[scroll contentView] setPostsFrameChangedNotifications: YES];
 	return self;
 }
 
 - (void) dealloc
 {
-	[[NSNotificationCenter defaultCenter] removeObserver: self];
-	[scroll release]; [entries release]; [path release]; [sel release];
+	[entries release]; [path release]; [sel release];
 	[super dealloc];
 }
 
 - (BOOL) isFlipped { return YES; }
 - (BOOL) acceptsFirstResponder { return YES; }
-- (NSView *) view { return scroll; }
-- (void) setDelegate: (id <MilanContentDelegate>)d { delegate = d; }
-- (NSString *) browsedPath { return path; }
 
-- (void) relayout: (NSNotification *)n
+- (void) relayout
 {
-	NSSize vs = [scroll contentSize];
-	NSInteger c = (NSInteger)((vs.width - PAD) / CELL_W);
-	NSInteger rows;
+	NSScrollView *scroll = [self enclosingScrollView];
+	NSSize vs, want;
+	NSInteger c, rows;
+	if (relaying || !scroll) return;
+	relaying = YES;
+	vs = [scroll contentSize];
+	c = (NSInteger)((vs.width - PAD) / CELL_W);
 	if (c < 1) c = 1;
 	cols = c;
 	rows = ([entries count] + c - 1) / c;
-	[self setFrameSize: NSMakeSize(vs.width, MAX(vs.height, rows * CELL_H + PAD * 2))];
+	want = NSMakeSize(vs.width, MAX(vs.height, rows * CELL_H + PAD * 2));
+	if (!NSEqualSizes(want, [self frame].size)) [self setFrameSize: want];
 	[self setNeedsDisplay: YES];
+	relaying = NO;
 }
 
-- (void) setPath: (NSString *)p entries: (NSArray *)e
+- (void) setEntries: (NSArray *)e keepSelection: (BOOL)keep
 {
-	[path release]; path = [p copy];
-	[sel removeAllIndexes];
-	anchor = -1;
-	[entries release]; entries = [e retain];
-	[self relayout: nil];
-	[[scroll contentView] scrollToPoint: NSZeroPoint];
-	[scroll reflectScrolledClipView: [scroll contentView]];
-	[delegate contentSelectionChanged];
-}
-
-- (void) reloadEntries: (NSArray *)e
-{
-	NSMutableSet *keep = [NSMutableSet set];
-	NSArray *old = [self selectedEntries];
+	NSMutableSet *k = [NSMutableSet set];
 	NSUInteger i;
-	MilanEntry *x;
-	for (x in old) [keep addObject: x->path];
+	if (keep) {
+		MilanEntry *x;
+		for (x in [self selectedEntries]) [k addObject: x->path];
+	}
 	[entries release]; entries = [e retain];
 	[sel removeAllIndexes];
-	for (i = 0; i < [entries count]; i++)
-		if ([keep containsObject: ((MilanEntry *)[entries objectAtIndex: i])->path])
-			[sel addIndex: i];
-	[self relayout: nil];
+	if (!keep) anchor = -1;
+	for (i = 0; keep && i < [entries count]; i++)
+		if ([k containsObject: ((MilanEntry *)[entries objectAtIndex: i])->path]) [sel addIndex: i];
+	[self relayout];
+	if (!keep) {
+		[[[self enclosingScrollView] contentView] scrollToPoint: NSZeroPoint];
+		[[self enclosingScrollView] reflectScrolledClipView: [[self enclosingScrollView] contentView]];
+	}
 	[delegate contentSelectionChanged];
 }
 
 - (NSArray *) selectedEntries
 {
+	if (!entries || ([sel count] && [sel lastIndex] >= [entries count])) return [NSArray array];
 	return [entries objectsAtIndexes: sel];
-}
-
-- (void) selectAll
-{
-	[sel removeAllIndexes];
-	[sel addIndexesInRange: NSMakeRange(0, [entries count])];
-	[self setNeedsDisplay: YES];
-	[delegate contentSelectionChanged];
 }
 
 - (void) selectPath: (NSString *)p
@@ -104,6 +82,20 @@
 		}
 	[self setNeedsDisplay: YES];
 	[delegate contentSelectionChanged];
+}
+
+- (void) selectAll
+{
+	[sel removeAllIndexes];
+	[sel addIndexesInRange: NSMakeRange(0, [entries count])];
+	[self setNeedsDisplay: YES];
+	[delegate contentSelectionChanged];
+}
+
+- (void) resizeWithOldSuperviewSize: (NSSize)old
+{
+	[super resizeWithOldSuperviewSize: old];
+	[self relayout];
 }
 
 - (NSRect) cellRect: (NSInteger)i
@@ -154,7 +146,8 @@
 			[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.25] set];
 			NSRectFillUsingOperation(ir, NSCompositeSourceOver);
 		}
-		[img drawInRect: ir fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: e->isHidden ? 0.5 : 1.0];
+		[img drawInRect: ir fromRect: NSZeroRect operation: NSCompositeSourceOver
+		     fraction: e->isHidden ? 0.5 : 1.0 respectFlipped: YES hints: nil];
 		[e->name drawInRect: tr withAttributes: s ? selAttrs : attrs];
 	}
 }
@@ -222,5 +215,39 @@
 	default: [super keyDown: ev];
 	}
 }
+
+@end
+
+@implementation MilanIconView
+
+- (id) init
+{
+	self = [super init];
+	grid = [[MilanIconGrid alloc] initWithFrame: NSMakeRect(0, 0, 100, 100)];
+	scroll = [[NSScrollView alloc] initWithFrame: NSMakeRect(0, 0, 100, 100)];
+	[scroll setHasVerticalScroller: YES];
+	[scroll setAutohidesScrollers: YES];
+	[scroll setBorderType: NSNoBorder];
+	[scroll setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
+	[scroll setDocumentView: grid];
+	[grid setAutoresizingMask: NSViewWidthSizable];
+	return self;
+}
+
+- (void) dealloc { [grid release]; [scroll release]; [super dealloc]; }
+- (NSView *) view { return scroll; }
+- (void) setDelegate: (id <MilanContentDelegate>)d { grid->delegate = d; }
+- (NSString *) browsedPath { return grid->path; }
+- (NSArray *) selectedEntries { return [grid selectedEntries]; }
+- (void) selectAll { [grid selectAll]; }
+- (void) selectPath: (NSString *)p { [grid selectPath: p]; }
+
+- (void) setPath: (NSString *)p entries: (NSArray *)e
+{
+	[grid->path release]; grid->path = [p copy];
+	[grid setEntries: e keepSelection: NO];
+}
+
+- (void) reloadEntries: (NSArray *)e { [grid setEntries: e keepSelection: YES]; }
 
 @end

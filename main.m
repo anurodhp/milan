@@ -1,9 +1,37 @@
 /*
  * milan: a small, fast Finder-style file manager for GNUstep.
- * Defaults: MilanStartPath (default $HOME), or a path as the first argument.
+ * Defaults: MilanStartPath (default $HOME) or a path as the first argument;
+ * MilanViewMode 0|1|2 (icons|list|columns); MilanInfo /a:/b opens info panels.
  */
 #import <AppKit/AppKit.h>
 #import "MilanWindow.h"
+#import "MilanInfoPanel.h"
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+/* MILAN_DEBUG=1: print a backtrace on SIGSEGV/SIGBUS (no alt stack here: sigaltstack is missing, so a stack overflow still dies silently). */
+static void
+crash_handler(int sig)
+{
+	void *bt[64];
+	int n = backtrace(bt, 64);
+	write(2, "milan: fatal signal, backtrace:\n", 32);
+	backtrace_symbols_fd(bt, n, 2);
+	_exit(128 + sig);
+}
+
+static void
+install_crash_handler(void)
+{
+	struct sigaction sa;
+	sa.sa_handler = crash_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGSEGV, &sa, NULL);
+	sigaction(SIGBUS, &sa, NULL);
+}
 
 @interface MilanApp : NSObject
 {
@@ -131,6 +159,16 @@ FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
 		start = [args objectAtIndex: 1];
 	[self buildMenus];
 	[self openWindowAtPath: start ? start : NSHomeDirectory()];
+	{
+		NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+		NSString *info;
+		if ([d objectForKey: @"MilanViewMode"]) [[self active] setMode: (int)[d integerForKey: @"MilanViewMode"]];
+		if ([d boolForKey: @"MilanTestWindow"])
+			[self performSelector: @selector(openWindowAtPath:) withObject: @"/etc" afterDelay: 2.0];
+		if ((info = [d stringForKey: @"MilanInfo"]))
+			for (NSString *f in [info componentsSeparatedByString: @":"])
+				[MilanInfoPanel performSelector: @selector(showForPath:) withObject: f afterDelay: 2.0];
+	}
 }
 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *)a { return YES; }
@@ -142,6 +180,7 @@ main(int argc, const char *argv[])
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	MilanApp *delegate;
+	if (getenv("MILAN_DEBUG")) install_crash_handler();
 	[NSApplication sharedApplication];
 	delegate = [[MilanApp alloc] init];
 	[NSApp setDelegate: delegate];
