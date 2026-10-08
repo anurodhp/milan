@@ -92,7 +92,11 @@ isTextExt(NSString *x)
 		NSImage *ic = [MilanIcons iconForEntry: entry];
 		[ic drawInRect: NSMakeRect(NSMidX(b) - 48, NSMidY(b) - 64, 96, 96) fromRect: NSZeroRect operation: NSCompositeSourceOver
 		      fraction: 1.0 respectFlipped: YES hints: nil];
-		sub = [NSString stringWithFormat: @"%@ – no preview", [entry kind]];
+		if (entry->isDir && !entry->isApp) {
+			NSUInteger n = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath: entry->path error: NULL] count];
+			sub = [NSString stringWithFormat: @"Folder – %lu item%@", (unsigned long)n, n == 1 ? @"" : @"s"];
+		} else
+			sub = [NSString stringWithFormat: @"%@ – no preview", [entry kind]];
 	}
 	{
 		NSSize ss = [sub sizeWithAttributes: st];

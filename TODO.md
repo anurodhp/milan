@@ -36,9 +36,8 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
   `Recycler.app` needs GWorkspace running, so it is not launched usefully from Milan.
 - Info panel: the "Kind:" label of the first row did not draw in one capture (value did); check on the real screen.
 
-- Quick Look: done for PNG/TIFF images and text (Space to open/close, arrows to step, Esc/click to close). Still to do:
-  JPEG (needs libjpeg), PDF, scaling up small images, zoom, a titlebar-less "full window" mode, preview of folders (item
-  count) and archives, decoding large images off the main thread.
+- Quick Look: images (PNG, TIFF, JPEG; small ones scaled up to 3x), text, and folders (item count). Still to do: PDF, zoom,
+  archives, decoding large images off the main thread.
 
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
