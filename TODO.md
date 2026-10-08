@@ -26,7 +26,6 @@
   gnustep-gui, optionally rebuild libtiff with JPEG on; then allow .jpg/.jpeg in the wallpaper panel (`MilanWallpaper.m`,
   `isPicture()` in `MilanWindow.m`), `~/Pictures` scanning and the icon kind table. Also on the list in
   `docs/webkit-browser-feasibility.md` (libjpeg-turbo, libwebp missing).
-- Preference for which folder a new blank window opens in (File > New Window). For now it always opens the user's home folder.
 - Launching: verify double-click on an `.app` starts it (`launchApplication:`), and that double-click on a document opens it
   in its handler (`NSWorkspace openFile:`). GNUstep does have file handlers: apps declare `NSTypes` (extensions, `NSRole`,
   `NSIcon`) in their Info plist, and NSWorkspace keeps per-extension choices in `~/GNUstep/Library/Services/.GNUstepExtPrefs`

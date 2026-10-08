@@ -8,6 +8,7 @@
 #import "MilanWindow.h"
 #import "MilanInfoPanel.h"
 #import "MilanWallpaper.h"
+#import "MilanPrefs.h"
 #include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -177,7 +178,8 @@ check(BOOL ok, NSString *what)
 
 - (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
 
-- (void) newWindow: (id)s { [self openWindowAtPath: NSHomeDirectory()]; }	/* a preference for this is in TODO.md */
+- (void) newWindow: (id)s { [self openWindowAtPath: [MilanPrefs newWindowPath]]; }
+- (void) showPrefs: (id)s { [MilanPrefs show]; }
 - (void) windowClosed: (MilanWindow *)w
 {
 	[[w retain] autorelease];
@@ -216,6 +218,7 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 	NSMenu *main = [[NSMenu alloc] initWithTitle: @"Milan"], *m;
 	m = [[NSMenu alloc] initWithTitle: @"Milan"];
 	add_item(m, @"About Milan", @selector(showAbout:), nil, self);
+	add_item(m, @"Preferences\u2026", @selector(showPrefs:), @",", self);
 	add_item(m, @"Hide Milan", @selector(hide:), @"h", NSApp);
 	add_item(m, @"Quit Milan", @selector(terminate:), @"q", NSApp);
 	[main setSubmenu: m forItem: add_item(main, @"Milan", NULL, nil, nil)]; [m release];
