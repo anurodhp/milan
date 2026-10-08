@@ -14,11 +14,15 @@
 	sel = [[NSMutableIndexSet alloc] init];
 	anchor = -1;
 	[self registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+	[[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(thumbReady:) name: MilanThumbnailReady object: nil];
 	return self;
 }
 
+- (void) thumbReady: (NSNotification *)n { [self setNeedsDisplay: YES]; }
+
 - (void) dealloc
 {
+	[[NSNotificationCenter defaultCenter] removeObserver: self];
 	[slotsKey release]; [slotCells release]; [cellToIndex release];
 	[entries release]; [path release]; [sel release]; [typed release];
 	[super dealloc];

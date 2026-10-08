@@ -29,7 +29,7 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
   Set as Desktop Picture accept them with the system gnustep-gui as it is. `libjpeg.62.dylib` must be in `/usr/X11/lib` on the
   image (the iokit PR "libjpeg-turbo + JPEG in gnustep-gui" builds it; the Pi has it from a manual copy). Rebuilding gnustep-gui
   with JPEG works in staging but loading it in place of the system gui gave a GDNC error here (not investigated); JPEG in
-  `NSImage` for other apps needs that gui deployed. Still to do: NEON SIMD in libjpeg, JPEG thumbnails in the icon view.
+  `NSImage` for other apps needs that gui deployed. Image thumbnails (PNG/TIFF/JPEG) show as file icons (`MilanThumbnailReady`). Still to do: NEON SIMD in libjpeg.
 
 - Launching: done with `MilanLauncher` (own launcher; NSWorkspace hands everything to GWorkspace). Apps started by Milan are not started twice
   ("X is already running"); activating a running app (raise its window) and apps started elsewhere still need a DO or X check; "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
@@ -48,8 +48,7 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
   - (done) icon positions are remembered and icons can be dragged to a new cell (`MilanDesktopSlots` default).
   - session start-up: launch `Milan -MilanDesktop YES -MilanOpenBrowser NO` from the Window Maker autostart, and a
     preference instead of launch arguments (`MilanDesktop`, `MilanDesktopPath`, `MilanOpenBrowser`);
-  - Change Background: "Add Picture..." via an open panel (today: drop PNG/TIFF files on the panel, or put them in ~/Pictures);
-    JPEG needs libjpeg in GNUstep-gui;
+  - Change Background: "Add Picture..." is covered by dropping files on the panel, putting them in ~/Pictures and "Set as Desktop Picture" in the file menu; an open panel is not planned.
   - (done, untested: needs a display-mode change) the desktop window follows screen-size changes and the wallpaper canvas is rebuilt for the new size.
 
 ## Notes

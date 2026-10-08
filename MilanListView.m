@@ -98,11 +98,13 @@
 	[scroll setBorderType: NSNoBorder];
 	[scroll setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
 	[scroll setDocumentView: table];
+	[[NSNotificationCenter defaultCenter] addObserver: table selector: @selector(display) name: MilanThumbnailReady object: nil];
 	return self;
 }
 
 - (void) dealloc
 {
+	[[NSNotificationCenter defaultCenter] removeObserver: table];
 	[table setDataSource: nil]; [table setDelegate: nil];
 	[scroll release]; [table release]; [entries release]; [path release];
 	[super dealloc];

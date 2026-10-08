@@ -6,6 +6,11 @@
 
 @interface MilanIcons : NSObject
 + (NSImage *) iconForEntry: (MilanEntry *)e;
+/* Thumbnails of PNG/TIFF/JPEG files: cached, decoded in the background (JPEG) or one at a time on the main thread
+ * (PNG/TIFF), and announced with MilanThumbnailReady so views redraw. nil until the thumbnail exists. */
++ (NSImage *) thumbnailForEntry: (MilanEntry *)e;
+extern NSString *const MilanThumbnailReady;
+
 /* A named Resources image ("tb-back-normal", "ft-folder"), cached; nil if missing. */
 + (NSImage *) imageNamed: (NSString *)name;
 @end
