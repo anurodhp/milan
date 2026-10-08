@@ -77,6 +77,84 @@ add_item(NSMenu *m, NSString *title, SEL action, NSString *key, id target)
 	[w release];
 }
 
+- (void) runBlock: (void (^)(void))b { b(); }
+
+- (void) later: (NSTimeInterval)t do: (void (^)(void))b
+{
+	[self performSelector: @selector(runBlock:) withObject: [[b copy] autorelease] afterDelay: t];
+}
+
+static void
+check(BOOL ok, NSString *what)
+{
+	NSLog(@"MULTITEST %@: %@", ok ? @"PASS" : @"FAIL", what);
+}
+
+/* -MilanMultiTest YES: several browser windows at once, each independent */
+- (void) runMultiTest
+{
+	__block NSArray *snapshot = nil;
+	[self openWindowAtPath: @"/usr"];
+	[self openWindowAtPath: @"/etc"];
+	[self openWindowAtPath: @"/Applications"];
+	check([windows count] == 4, @"four windows open (1 launch + 3)");
+	{
+		NSMutableSet *paths = [NSMutableSet set];
+		MilanWindow *w;
+		for (w in windows) [paths addObject: [w currentPath]];
+		check([paths count] == 4, @"each window shows its own folder");
+	}
+	[[windows objectAtIndex: 1] setMode: 1];
+	[[windows objectAtIndex: 2] setMode: 2];
+	[self later: 6 do: ^{
+		MilanWindow *w1 = [windows objectAtIndex: 1], *w2 = [windows objectAtIndex: 2];
+		snapshot = [[windows valueForKey: @"currentPath"] copy];
+		[w1 goTo: @"/usr/lib"];
+		check([[w1 currentPath] isEqualToString: @"/usr/lib"] && [[w2 currentPath] isEqualToString: [snapshot objectAtIndex: 2]]
+		      && [[[windows objectAtIndex: 0] currentPath] isEqualToString: [snapshot objectAtIndex: 0]],
+		      @"navigating one window leaves the others alone");
+		[w1 goBack: nil];
+		check([[w1 currentPath] isEqualToString: [snapshot objectAtIndex: 1]], @"each window has its own back history");
+	}];
+	[self later: 10 do: ^{
+		NSUInteger n = [windows count];
+		[[(MilanWindow *)[windows objectAtIndex: 1] window] performClose: nil];
+		[self later: 2 do: ^{
+			check([windows count] == n - 1 && [NSApp isRunning], @"closing one window keeps the rest and the app");
+			check([[windows objectAtIndex: 0] window] != nil && [[[windows lastObject] window] isVisible], @"remaining windows still visible");
+			NSLog(@"MULTITEST done");
+			[self runDragBetweenWindowsTest];
+		}];
+	}];
+}
+
+/* a drop in one window of a file that lives in another window's folder, as a drag between them delivers it */
+- (void) runDragBetweenWindowsTest
+{
+	NSFileManager *fm = [NSFileManager defaultManager];
+	NSString *a = @"/tmp/milan-dd/a", *b = @"/tmp/milan-dd/b", *f = @"/tmp/milan-dd/a/f.txt";
+	MilanWindow *wa, *wb;
+	[fm removeItemAtPath: @"/tmp/milan-dd" error: NULL];
+	[fm createDirectoryAtPath: a withIntermediateDirectories: YES attributes: nil error: NULL];
+	[fm createDirectoryAtPath: b withIntermediateDirectories: YES attributes: nil error: NULL];
+	[@"x" writeToFile: f atomically: YES encoding: NSUTF8StringEncoding error: NULL];
+	[self openWindowAtPath: a];
+	wa = [windows lastObject];
+	[self openWindowAtPath: b];
+	wb = [windows lastObject];
+	[self later: 5 do: ^{
+		check([[wa valueForKey: @"entries"] count] == 1 && [[wb valueForKey: @"entries"] count] == 0, @"window A lists f.txt, window B is empty");
+		[wb contentDropPaths: [NSArray arrayWithObject: f] onto: nil copy: NO];	/* dropped on B's background */
+		[self later: 6 do: ^{
+			check([fm fileExistsAtPath: [b stringByAppendingPathComponent: @"f.txt"]] && ![fm fileExistsAtPath: f],
+			      @"dropping A's file into B moves it");
+			check([[wa valueForKey: @"entries"] count] == 0 && [[wb valueForKey: @"entries"] count] == 1,
+			      @"both windows refresh (A empties, B shows f.txt)");
+			NSLog(@"MULTITEST drag done");
+		}];
+	}];
+}
+
 - (void) newWindow: (id)s { [self openWindowAtPath: [[self active] currentPath]]; }
 - (void) windowClosed: (MilanWindow *)w
 {
@@ -174,6 +252,7 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 		NSString *info;
 		if ([d objectForKey: @"MilanViewMode"]) [[self active] setMode: (int)[d integerForKey: @"MilanViewMode"]];
 		if ([d boolForKey: @"MilanAbout"]) [self performSelector: @selector(showAbout:) withObject: nil afterDelay: 1.0];
+		if ([d boolForKey: @"MilanMultiTest"]) [self runMultiTest];
 		if ([d boolForKey: @"MilanSelfTest"]) [[self active] runSelfTest];
 		if ([d boolForKey: @"MilanTestWindow"])
 			[self performSelector: @selector(openWindowAtPath:) withObject: @"/etc" afterDelay: 2.0];

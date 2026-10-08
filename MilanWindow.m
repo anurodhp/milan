@@ -215,7 +215,13 @@ trashHasItems(void)
 }
 
 - (NSWindow *) window { return window; }
-- (NSString *) currentPath { return [cur browsedPath] ? [cur browsedPath] : (path ? path : NSHomeDirectory()); }
+/* the folder actions apply to: the window's own folder at once on navigation (the view only catches up
+ * when the load completes); in columns view, the deepest open column */
+- (NSString *) currentPath
+{
+	if (mode == 2 && [cur browsedPath]) return [cur browsedPath];
+	return path ? path : NSHomeDirectory();
+}
 
 /* ---- navigation ---- */
 
@@ -317,13 +323,24 @@ trashHasItems(void)
 	          completion: ^(NSArray *e, NSString *err) { done(e); }];
 }
 
+/* Like Finder: a drag to another volume copies, a drag within a volume moves. */
+- (BOOL) crossesVolumes: (NSArray *)paths to: (NSString *)dest
+{
+	struct stat d, f;
+	NSString *p;
+	if (stat([dest fileSystemRepresentation], &d) != 0) return NO;
+	for (p in paths)
+		if (lstat([p fileSystemRepresentation], &f) == 0 && f.st_dev != d.st_dev) return YES;
+	return NO;
+}
+
 - (void) contentDropPaths: (NSArray *)paths onto: (NSString *)folder copy: (BOOL)copy
 {
 	NSString *dest = folder ? folder : [self currentPath];
 	MilanOpDone done = ^(NSString *e) { [self report: e]; [self load: NO]; };
 	if ([dest isEqualToString: MilanTrashPath]) [MilanTrash trashPaths: paths done: done];	/* dropped on the Trash */
 	else if (MilanPathInTrash(dest)) { NSBeep(); }	/* nothing is copied or moved into a Trash folder by hand */
-	else if (copy) [MilanFileOps copyPaths: paths toDir: dest done: done];
+	else if (copy || [self crossesVolumes: paths to: dest]) [MilanFileOps copyPaths: paths toDir: dest done: done];
 	else [MilanFileOps movePaths: paths toDir: dest done: done];
 }
 

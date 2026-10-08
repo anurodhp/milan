@@ -9,6 +9,7 @@
 - Rename sheet (modal panel).
 - List-view column-header sorting.
 - Two or more info panels open at once.
+- A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
@@ -22,4 +23,5 @@
 - Background work must reach the UI via `MilanRunOnMain()`, not `dispatch_async(main queue)` or
   `dispatch_after` (GNUstep's run loop is not woken by main-queue blocks).
 - A document view must not be the object that owns its scroll view (recursed in `isFlipped`).
+- Multi-window test: `Milan -MilanMultiTest YES`.
 - Self test: `Milan -MilanSelfTest YES`; other launch defaults: `MilanViewMode`, `MilanInfo`, `MilanOrigin`.
