@@ -22,3 +22,8 @@
 - (void) selectPath: (NSString *)path;
 - (NSString *) browsedPath;	/* deepest directory shown (columns), else the root path */
 @end
+
+/* Shows a context menu at the event's location, and closes it again. See MilanContent.m for why this is not
+ * -popUpContextMenu:. */
+void MilanPopUpMenu(NSMenu *menu, NSView *view, NSEvent *event);
+void MilanDismissMenu(void);

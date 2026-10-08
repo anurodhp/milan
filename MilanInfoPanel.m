@@ -94,7 +94,7 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	[rows addObject: [NSArray arrayWithObjects: @"Changed:", MilanFormatDate(e->ctime_), nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Permissions:", MilanFormatMode(e->mode), nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Owner:",
-	                  [NSString stringWithFormat: @"%s : %s", pw ? pw->pw_name : "?", gr ? gr->gr_name : "?"], nil]];
+	                  [NSString stringWithFormat: @"%@ : %@", pw ? [NSString stringWithUTF8String: pw->pw_name] : [NSString stringWithFormat: @"%u", (unsigned)e->uid], gr ? [NSString stringWithUTF8String: gr->gr_name] : [NSString stringWithFormat: @"%u", (unsigned)e->gid]], nil]];
 
 	n = [rows count];
 	panel = (NSPanel *)[[NSWindow alloc] initWithContentRect: NSMakeRect(200 + cascade * 24, 400 - cascade * 24, W, top + n * rowH + 36)
@@ -116,7 +116,11 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 			[nm setSelectable: NO];
 			[v addSubview: nm];
 		}
-		[v addSubview: label([e kind], NSMakeRect(82, H - 66, W - 98, 16), NO, NSLeftTextAlignment)];
+		{
+			NSTextField *kd = label([e kind], NSMakeRect(82, H - 66, W - 98, 16), NO, NSLeftTextAlignment);
+			[kd setSelectable: NO];
+			[v addSubview: kd];
+		}
 		for (i = 0; i < n; i++) {
 			NSArray *r = [rows objectAtIndex: i];
 			CGFloat y = H - top - (i + 1) * rowH + 4;

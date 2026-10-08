@@ -142,10 +142,14 @@
 		NSRect tr = NSMakeRect(c.origin.x + 3, c.origin.y + ICON + 8, CELL_W - 6, 28);
 		NSImage *img = [MilanIcons iconForEntry: e];
 		if (s) {
-			[[NSColor selectedMenuItemColor] set];
-			NSRectFill(NSMakeRect(tr.origin.x, tr.origin.y, tr.size.width, 15));
+			/* rounded highlights, radius 5: the icon tile and the label */
+			NSBezierPath *tile = [NSBezierPath bezierPathWithRoundedRect: ir xRadius: 5 yRadius: 5];
+			NSBezierPath *label = [NSBezierPath bezierPathWithRoundedRect: NSMakeRect(tr.origin.x, tr.origin.y, tr.size.width, 15)
+			                                                      xRadius: 5 yRadius: 5];
 			[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.25] set];
-			NSRectFillUsingOperation(ir, NSCompositeSourceOver);
+			[tile fill];
+			[[NSColor selectedMenuItemColor] set];
+			[label fill];
 		}
 		[img drawInRect: ir fromRect: NSZeroRect operation: NSCompositeSourceOver
 		     fraction: e->isHidden ? 0.5 : 1.0 respectFlipped: YES hints: nil];
@@ -161,6 +165,7 @@
 
 - (void) mouseDown: (NSEvent *)ev
 {
+	MilanDismissMenu();
 	NSPoint p = [self convertPoint: [ev locationInWindow] fromView: nil];
 	NSInteger i = [self indexAtPoint: p];
 	NSUInteger m = [ev modifierFlags];
@@ -260,6 +265,12 @@
 	if (![paths count]) return NO;
 	[delegate contentDropPaths: paths onto: [self dropTargetAt: info] copy: copy];
 	return YES;
+}
+
+- (void) rightMouseDown: (NSEvent *)ev
+{
+	NSMenu *m = [self menuForEvent: ev];
+	if (m) MilanPopUpMenu(m, self, ev);
 }
 
 - (NSMenu *) menuForEvent: (NSEvent *)ev

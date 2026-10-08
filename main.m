@@ -34,6 +34,18 @@ install_crash_handler(void)
 	sigaction(SIGBUS, &sa, NULL);
 }
 
+/* Exceptions raised inside the event loop are reported through an NSAlert that this theme suppresses when the
+ * text is empty, which leaves a silently blank window. Log them instead. */
+@interface MilanApplication : NSApplication
+@end
+
+@implementation MilanApplication
+- (void) reportException: (NSException *)e
+{
+	NSLog(@"MILAN EXCEPTION %@: %@ %@", [e name], [e reason], [e userInfo]);
+}
+@end
+
 @interface MilanApp : NSObject
 {
 	NSMutableArray *windows;
@@ -155,7 +167,7 @@ check(BOOL ok, NSString *what)
 	}];
 }
 
-- (void) newWindow: (id)s { [self openWindowAtPath: [[self active] currentPath]]; }
+- (void) newWindow: (id)s { [self openWindowAtPath: NSHomeDirectory()]; }	/* a preference for this is in TODO.md */
 - (void) windowClosed: (MilanWindow *)w
 {
 	[[w retain] autorelease];
@@ -272,7 +284,7 @@ main(int argc, const char *argv[])
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	MilanApp *delegate;
 	if (getenv("MILAN_DEBUG")) install_crash_handler();
-	[NSApplication sharedApplication];
+	[MilanApplication sharedApplication];
 	delegate = [[MilanApp alloc] init];
 	[NSApp setDelegate: delegate];
 	[NSApp run];

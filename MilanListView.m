@@ -15,6 +15,18 @@
 	return [menuDelegate contentMenu];
 }
 
+- (void) rightMouseDown: (NSEvent *)ev
+{
+	NSMenu *m = [self menuForEvent: ev];
+	if (m) MilanPopUpMenu(m, self, ev);
+}
+
+- (void) mouseDown: (NSEvent *)ev
+{
+	MilanDismissMenu();
+	[super mouseDown: ev];
+}
+
 - (void) keyDown: (NSEvent *)ev
 {
 	NSString *k = [ev charactersIgnoringModifiers];

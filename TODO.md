@@ -12,6 +12,7 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
+- Preference for which folder a new blank window opens in (File > New Window). For now it always opens the user's home folder.
 - Launching: verify double-click on an `.app` starts it (`launchApplication:`), and that double-click on a document opens it
   in its handler (`NSWorkspace openFile:`). GNUstep does have file handlers: apps declare `NSTypes` (extensions, `NSRole`,
   `NSIcon`) in their Info plist, and NSWorkspace keeps per-extension choices in `~/GNUstep/Library/Services/.GNUstepExtPrefs`
