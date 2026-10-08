@@ -15,9 +15,6 @@
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.
 - Desktop drawing (future iteration).
 
-## Cleanup
-- Commit `tools/userland_staging/build_milan.sh` in the iokit repo (untracked there).
-
 ## Notes
 - Background work must reach the UI via `MilanRunOnMain()`, not `dispatch_async(main queue)` or
   `dispatch_after` (GNUstep's run loop is not woken by main-queue blocks).
