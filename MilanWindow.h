@@ -24,13 +24,14 @@
 	BOOL clipCut;
 	NSInteger clipChange;
 	NSMenu *ctxMenu, *blankMenu;
-	BOOL desktop;
+	BOOL desktop, savesFrame;
 	NSScrollView *sidebar;
 	NSTableView *sidebarTable;
 	NSArray *favorites;
 	BOOL syncingSidebar;
 }
 - (id) initWithPath: (NSString *)p;
++ (NSValue *) savedFrameForPath: (NSString *)p;
 - (id) initDesktop;
 - (void) changeBackground: (id)s;
 - (void) setDesktopPicture: (id)s;

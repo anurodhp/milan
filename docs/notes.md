@@ -13,3 +13,7 @@
 - A document view must not be the object that owns its scroll view (infinite recursion in `isFlipped`).
 - `xwd -root` on the Pi is 24 bits per pixel with 4-byte rows; decode it as BGR, not BGRA.
 - `xinject` (tools/userland_staging) drives the real X server via XTEST: click, drag, key, `windows` dumps the X window tree.
+- **Never drag a window's resize grip (or any WM-managed resize) with `xinject`.** Window Maker takes `XGrabServer`
+  for the whole resize; XTEST requests from other clients are then not serviced, so the button release never arrives and
+  every X client, including xinject, hangs. Recovery: `kill -USR1 <wmaker pid>` (restarts the WM in place and releases
+  the grab; it re-runs the autostart script, so an extra Terminal.app appears). Moving by the title bar is fine.

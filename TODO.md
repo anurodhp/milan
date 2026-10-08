@@ -20,6 +20,9 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
+- Selection highlights with rounded corners, radius 5, everywhere: the icon view and desktop already do it (tile and label);
+  the list view rows, column-view rows and sidebar rows still use square GNUstep highlights. Match the radius (and the
+  colour) used on the icons, or whatever the rest of the icon set uses.
 - JPEG support. GNUstep-gui is built `--disable-jpeg` (`build_gnustep_gui.sh`) and nothing builds libjpeg, so `NSImage`
   cannot read .jpg/.jpeg: wallpapers, thumbnails and Quick Look are PNG/TIFF only today. Plan: add `build_libjpeg.sh` in the
   iokit staging tree (libjpeg-turbo: BSD/IJG/zlib licensed, plain C, optional NEON), drop `--disable-jpeg` and rebuild
@@ -33,7 +36,6 @@
   and a Get Info row showing the default app for the file's extension.
 - Quick Look: Space bar previews the selected image (and later text) in a floating preview window; Space or Esc closes it;
   arrow keys move to the next/previous image; scale to fit, decode off the main thread.
-- Remember window position and size per folder: restore them when a folder is opened again (keyed by path, in the preferences; new folders keep the cascade default).
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
 - Real mouse-drag test of drag and drop (all three views have it now).

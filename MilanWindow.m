@@ -88,6 +88,10 @@ setEnabledIcon(NSButton *b, BOOL on)
 	    styleMask: NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
 	    backing: NSBackingStoreBuffered defer: NO];
 	[window setReleasedWhenClosed: NO];
+	{
+		NSValue *saved = [MilanWindow savedFrameForPath: p];	/* the frame this folder had last time */
+		if (saved) [window setFrame: [saved rectValue] display: NO];
+	}
 	[window setDelegate: self];
 	[window setMinSize: NSMakeSize(480, 280)];
 	cv = [window contentView];
@@ -192,6 +196,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 	[self switchToMode: 0];
 	[self goTo: p];
 	[window makeKeyAndOrderFront: nil];
+	[self performSelector: @selector(startSavingFrames) withObject: nil afterDelay: 1.5];
 	return self;
 }
 
@@ -786,10 +791,67 @@ exists(NSString *p)
 
 /* ---- window ---- */
 
+/* ---- remembered window geometry, per folder ---- */
+
+static NSString *const kFrames = @"MilanWindowFrames", *kFrameOrder = @"MilanWindowFrameOrder";
+
++ (NSValue *) savedFrameForPath: (NSString *)p
+{
+	NSString *s = [[[NSUserDefaults standardUserDefaults] dictionaryForKey: kFrames] objectForKey: p];
+	NSArray *f = [s componentsSeparatedByString: @" "];
+	NSRect r, scr = [[NSScreen mainScreen] frame];
+	if ([f count] != 4) return nil;
+	r = NSMakeRect([[f objectAtIndex: 0] doubleValue], [[f objectAtIndex: 1] doubleValue],
+	               [[f objectAtIndex: 2] doubleValue], [[f objectAtIndex: 3] doubleValue]);
+	if (r.size.width < 300 || r.size.height < 200 || !NSIntersectsRect(r, scr)) return nil;	/* off-screen or silly */
+	return [NSValue valueWithRect: r];
+}
+
+/* saved under the folder the window shows now, so reopening that folder gets the same place and size */
+- (void) saveFrame
+{
+	NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+	NSMutableDictionary *m = [[[d dictionaryForKey: kFrames] mutableCopy] autorelease];
+	NSMutableArray *order = [[[d arrayForKey: kFrameOrder] mutableCopy] autorelease];
+	NSRect r = [window frame];
+	if (desktop || !path || [path isEqualToString: MilanTrashPath]) return;
+	if (!m) m = [NSMutableDictionary dictionary];
+	if (!order) order = [NSMutableArray array];
+	{
+		/* the window manager's border shifts a reopened window by a pixel or two; only real moves are saved */
+		NSValue *old = [MilanWindow savedFrameForPath: path];
+		if (old) {
+			NSRect o = [old rectValue];
+			if (fabs(o.origin.x - r.origin.x) <= 3 && fabs(o.origin.y - r.origin.y) <= 3
+			    && fabs(o.size.width - r.size.width) <= 3 && fabs(o.size.height - r.size.height) <= 3) return;
+		}
+	}
+	[m setObject: [NSString stringWithFormat: @"%.0f %.0f %.0f %.0f", r.origin.x, r.origin.y, r.size.width, r.size.height] forKey: path];
+	[order removeObject: path];
+	[order addObject: path];
+	while ([order count] > 150) { [m removeObjectForKey: [order objectAtIndex: 0]]; [order removeObjectAtIndex: 0]; }
+	[d setObject: m forKey: kFrames];
+	[d setObject: order forKey: kFrameOrder];
+}
+
+- (void) startSavingFrames { savesFrame = YES; }
+
+- (void) saveFrameSoon
+{
+	if (!savesFrame) return;	/* the window manager's own placement just after opening is not the user's */
+	[NSObject cancelPreviousPerformRequestsWithTarget: self selector: @selector(saveFrame) object: nil];
+	[self performSelector: @selector(saveFrame) withObject: nil afterDelay: 0.5];
+}
+
+- (void) windowDidMove: (NSNotification *)n { [self saveFrameSoon]; }
+- (void) windowDidResize: (NSNotification *)n { [self saveFrameSoon]; }
+
 - (BOOL) windowShouldClose: (id)sender { return !desktop; }
 
 - (void) windowWillClose: (NSNotification *)n
 {
+	[NSObject cancelPreviousPerformRequestsWithTarget: self selector: @selector(saveFrame) object: nil];
+	[self saveFrame];
 	[self stopWatching];
 	[[NSApp delegate] performSelector: @selector(windowClosed:) withObject: self];
 }
