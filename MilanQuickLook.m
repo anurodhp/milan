@@ -76,7 +76,7 @@ isTextExt(NSString *x)
 	[title drawAtPoint: NSMakePoint(NSMidX(b) - ts.width / 2, 12) withAttributes: tt];
 	if (image && [image size].width > 0) {
 		NSSize is = [image size];
-		CGFloat s = MIN(MIN(box.size.width / is.width, box.size.height / is.height), 1.0);
+		CGFloat s = MIN(MIN(box.size.width / is.width, box.size.height / is.height), 3.0);	/* small images are scaled up, to 3x */
 		NSSize d = NSMakeSize(is.width * s, is.height * s);
 		NSRect r = NSMakeRect(NSMidX(box) - d.width / 2, NSMidY(box) - d.height / 2, d.width, d.height);
 		[image drawInRect: r fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0 respectFlipped: YES hints: nil];
