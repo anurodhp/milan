@@ -1,8 +1,9 @@
 /* MilanWindow: one browser window -- toolbar, path field, content view, status line. */
 #import <AppKit/AppKit.h>
 #import "MilanContent.h"
+#import "MilanQuickLook.h"
 
-@interface MilanWindow : NSObject <NSWindowDelegate, MilanContentDelegate, NSTableViewDataSource, NSTableViewDelegate>
+@interface MilanWindow : NSObject <NSWindowDelegate, MilanContentDelegate, MilanQuickLookNavigator, NSTableViewDataSource, NSTableViewDelegate>
 {
 	NSWindow *window;
 	NSString *path;

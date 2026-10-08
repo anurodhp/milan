@@ -41,8 +41,10 @@
   `Recycler.app` needs GWorkspace running, so it is not launched usefully from Milan.
 - Info panel: the "Kind:" label of the first row did not draw in one capture (value did); check on the real screen.
 
-- Quick Look: Space bar previews the selected image (and later text) in a floating preview window; Space or Esc closes it;
-  arrow keys move to the next/previous image; scale to fit, decode off the main thread.
+- Quick Look: done for PNG/TIFF images and text (Space to open/close, arrows to step, Esc/click to close). Still to do:
+  JPEG (needs libjpeg), PDF, scaling up small images, zoom, a titlebar-less "full window" mode, preview of folders (item
+  count) and archives, decoding large images off the main thread.
+
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
 - Real mouse-drag test of drag and drop (all three views have it now).
@@ -63,3 +65,7 @@
 - A document view must not be the object that owns its scroll view (recursed in `isFlipped`).
 - Multi-window test: `Milan -MilanMultiTest YES`.
 - Self test: `Milan -MilanSelfTest YES`; other launch defaults: `MilanViewMode`, `MilanInfo`, `MilanOrigin`.
+- Note: this GNUstep base lacks newer API: `+[NSData dataWithContentsOfFile:options:error:]` aborts the process (calling an
+  unimplemented class method), and `-precomposedStringWithCanonicalMapping` needs ICU. Both are being added in the libs-base fork
+  (branch `nsdata-options-nfc-no-icu`); until the rebuilt libgnustep-base is deployed, Milan uses `+[NSData dataWithContentsOfFile:]`
+  and its own `MilanNFC`.

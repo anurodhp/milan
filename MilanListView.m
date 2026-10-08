@@ -42,7 +42,9 @@
 - (void) keyDown: (NSEvent *)ev
 {
 	NSString *k = [ev charactersIgnoringModifiers];
-	if ([k length] && [k characterAtIndex: 0] == '\r' && [self selectedRow] >= 0)
+	if ([k length] && [k characterAtIndex: 0] == ' ' && [self selectedRow] >= 0)
+		[menuDelegate contentQuickLook];
+	else if ([k length] && [k characterAtIndex: 0] == '\r' && [self selectedRow] >= 0)
 		[self sendAction: [self doubleAction] to: [self target]];
 	else
 		[super keyDown: ev];

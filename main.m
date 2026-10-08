@@ -34,6 +34,8 @@ install_crash_handler(void)
 	sa.sa_flags = 0;
 	sigaction(SIGSEGV, &sa, NULL);
 	sigaction(SIGBUS, &sa, NULL);
+	sigaction(SIGABRT, &sa, NULL);
+	sigaction(SIGILL, &sa, NULL);
 }
 
 /* Exceptions raised inside the event loop are reported through an NSAlert that this theme suppresses when the

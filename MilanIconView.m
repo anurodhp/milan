@@ -366,6 +366,10 @@
 	case NSUpArrowFunctionKey: [self moveSelection: -cols extend: shift]; break;
 	case NSDownArrowFunctionKey: [self moveSelection: cols extend: shift]; break;
 	case '\r': if ([sel count]) [delegate contentOpen: [self selectedEntries]]; break;
+	case ' ':
+		if (typed && [NSDate timeIntervalSinceReferenceDate] - typedAt < 1.0) [self typeSelect: k];	/* a space inside a name being typed */
+		else [delegate contentQuickLook];
+		break;
 	default:
 		if (c >= 0x20 && c < 0xf700 && !([ev modifierFlags] & NSCommandKeyMask)) [self typeSelect: k];
 		else [super keyDown: ev];

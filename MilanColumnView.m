@@ -166,6 +166,7 @@
 
 /* Menu delegate protocol surface for the columns' tables. */
 - (NSMenu *) contentMenu { return [delegate contentMenu]; }
+- (void) contentQuickLook { [delegate contentQuickLook]; }
 
 - (void) relayout
 {

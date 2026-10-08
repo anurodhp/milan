@@ -7,6 +7,7 @@
 #import "MilanIcons.h"
 #import "MilanTrash.h"
 #import "MilanLauncher.h"
+#import "MilanQuickLook.h"
 #import "MilanListView.h"
 #import "MilanWallpaper.h"
 #include <fcntl.h>
@@ -409,6 +410,27 @@ setEnabledIcon(NSButton *b, BOOL on)
 	else if (MilanPathInTrash(dest)) { NSBeep(); }	/* nothing is copied or moved into a Trash folder by hand */
 	else if (copy || [self crossesVolumes: paths to: dest]) [MilanFileOps copyPaths: paths toDir: dest done: done];
 	else [MilanFileOps movePaths: paths toDir: dest done: done];
+}
+
+- (void) contentQuickLook
+{
+	NSArray *s = [cur selectedEntries];
+	if ([MilanQuickLook isActive]) { [MilanQuickLook dismiss]; return; }
+	if ([s count]) [MilanQuickLook showEntry: [s objectAtIndex: 0] over: host navigator: self];
+	else NSBeep();
+}
+
+/* arrow keys inside Quick Look move the browser's own selection, so closing it leaves you where you stopped */
+- (MilanEntry *) quickLookStep: (int)delta
+{
+	NSArray *s = [cur selectedEntries];
+	NSUInteger i = [s count] ? [entries indexOfObject: [s objectAtIndex: 0]] : NSNotFound;
+	NSInteger t;
+	if (i == NSNotFound) return nil;
+	t = (NSInteger)i + delta;
+	if (t < 0 || t >= (NSInteger)[entries count]) return nil;
+	[cur selectPath: ((MilanEntry *)[entries objectAtIndex: t])->path];
+	return [entries objectAtIndex: t];
 }
 
 - (void) contentSortBy: (MilanSort)key
