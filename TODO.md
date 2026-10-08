@@ -17,7 +17,7 @@
 - Real mouse-drag test of drag and drop (all three views have it now).
 - Sidebar: user-editable favorites.
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.
-- Desktop drawing (future iteration).
+- Desktop drawing: see `docs/desktop-plan.md`. Build `xinject` (XTEST) first to test with real input.
 
 ## Notes
 - Background work must reach the UI via `MilanRunOnMain()`, not `dispatch_async(main queue)` or
