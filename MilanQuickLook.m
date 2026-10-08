@@ -11,6 +11,7 @@
 	MilanEntry *entry;
 	NSImage *image;
 	NSString *text;
+	BOOL loading;
 	id <MilanQuickLookNavigator> nav;
 }
 - (id) initWithFrame: (NSRect)f navigator: (id <MilanQuickLookNavigator>)n;
@@ -49,10 +50,27 @@ isTextExt(NSString *x)
 	[entry release]; entry = [e retain];
 	[image release]; image = nil;
 	[text release]; text = nil;
+	loading = NO;
 	if (!e->isDir) {
-		if (MilanIsPictureExtension(x) && e->size < MAX_IMAGE_BYTES)
-			image = [MilanLoadImage(e->path) retain];
-		else if (isTextExt(x) || (e->size < MAX_TEXT && !(e->mode & 0111) && ![x length])) {
+		if (MilanIsPictureExtension(x) && e->size < MAX_IMAGE_BYTES) {
+				/* decode off the main thread; stepping to another file meanwhile makes the result stale */
+				MilanEntry *want = e;
+				NSString *p = [e->path copy];
+				loading = YES;
+				[self retain];
+				dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+					NSImage *img = [MilanLoadImage(p) retain];
+					MilanRunOnMain(^{
+						if (entry == want && active == self) { image = img; loading = NO; [self setNeedsDisplay: YES]; }
+						else [img release];
+						[p release];
+						[self release];
+					});
+					[pool release];
+				});
+			}
+			else if (isTextExt(x) || (e->size < MAX_TEXT && !(e->mode & 0111) && ![x length])) {
 			NSData *d = [NSData dataWithContentsOfFile: e->path];
 			if ([d length] > MAX_TEXT) d = [d subdataWithRange: NSMakeRange(0, MAX_TEXT)];
 			text = [[NSString alloc] initWithData: d encoding: NSUTF8StringEncoding];
@@ -92,7 +110,8 @@ isTextExt(NSString *x)
 		NSImage *ic = [MilanIcons iconForEntry: entry];
 		[ic drawInRect: NSMakeRect(NSMidX(b) - 48, NSMidY(b) - 64, 96, 96) fromRect: NSZeroRect operation: NSCompositeSourceOver
 		      fraction: 1.0 respectFlipped: YES hints: nil];
-		if (entry->isDir && !entry->isApp) {
+		if (loading) sub = @"Loading…";
+			else if (entry->isDir && !entry->isApp) {
 			NSUInteger n = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath: entry->path error: NULL] count];
 			sub = [NSString stringWithFormat: @"Folder – %lu item%@", (unsigned long)n, n == 1 ? @"" : @"s"];
 		} else

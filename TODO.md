@@ -32,8 +32,8 @@ Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorit
   ("X is already running"); activating a running app (raise its window) and apps started elsewhere still need a DO or X check; "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
   `Recycler.app` needs GWorkspace running, so it is not launched usefully from Milan.
 
-- Quick Look: images (PNG, TIFF, JPEG; small ones scaled up to 3x), text, and folders (item count). Still to do: PDF, zoom,
-  archives, decoding large images off the main thread.
+- Quick Look: images (PNG, TIFF, JPEG; small ones scaled up to 3x), text, and folders (item count). Image decode is off the main thread. Still to do: PDF, zoom,
+  archives.
 
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
