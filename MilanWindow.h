@@ -49,6 +49,7 @@
 - (void) goTrash: (id)s;
 - (void) putBack: (id)s;
 - (void) emptyTrash: (id)s;
+- (void) deleteImmediately: (id)s;
 - (BOOL) openAllowedFor: (NSArray *)sel;
 - (void) setViewMode: (id)s;
 - (void) setMode: (int)m;

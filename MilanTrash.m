@@ -19,7 +19,8 @@ MilanSetTrashHome(NSString *dir)
 static NSString *
 homeTrash(void)
 {
-	return homeOverride ? homeOverride : [NSHomeDirectory() stringByAppendingPathComponent: @".Trash"];
+	NSString *d = homeOverride ? homeOverride : [[NSUserDefaults standardUserDefaults] stringForKey: @"MilanTrashDir"];	/* tests */
+	return [d length] ? d : [NSHomeDirectory() stringByAppendingPathComponent: @".Trash"];
 }
 
 static NSString *
@@ -179,6 +180,27 @@ trashName(NSFileManager *fm, NSString *dir, NSString *name)
 				continue;
 			}
 			[origins removeObjectForKey: name];
+			writeOrigins(tdir, origins);
+		}
+	}, ^(NSString *err) { if (done) done(err); [paths release]; });
+}
+
++ (BOOL) hasItems { return MilanTrashHasItems(); }
+
++ (void) deletePaths: (NSArray *)paths done: (MilanOpDone)done
+{
+	paths = [paths copy];
+	MilanOpsRun(^(NSFileManager *fm, NSString **err) {
+		NSString *p;
+		for (p in paths) {
+			NSError *e = nil;
+			NSString *tdir = [p stringByDeletingLastPathComponent];
+			NSMutableDictionary *origins;
+			if (!MilanPathInTrash(p) || [p isEqualToString: MilanTrashPath]) continue;
+			if (![fm removeItemAtPath: p error: &e] && !*err)
+				*err = [NSString stringWithFormat: @"Could not delete %@: %@", [p lastPathComponent], [e localizedDescription]];
+			origins = readOrigins(tdir);
+			[origins removeObjectForKey: [p lastPathComponent]];
 			writeOrigins(tdir, origins);
 		}
 	}, ^(NSString *err) { if (done) done(err); [paths release]; });

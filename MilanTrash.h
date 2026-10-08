@@ -18,4 +18,6 @@ BOOL MilanTrashHasItems(void);	/* any item in any Trash (cached for 0.5 s) */	/*
 + (void) trashPaths: (NSArray *)paths done: (MilanOpDone)done;
 + (void) putBackPaths: (NSArray *)paths done: (MilanOpDone)done;	/* top-level trash items only */
 + (void) emptyDone: (MilanOpDone)done;
++ (void) deletePaths: (NSArray *)paths done: (MilanOpDone)done;	/* top-level trash items, for good */
++ (BOOL) hasItems;
 @end

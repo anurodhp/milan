@@ -8,6 +8,7 @@
 #import "MilanTrash.h"
 #import "MilanLauncher.h"
 #import "MilanQuickLook.h"
+#import "MilanDialog.h"
 #import "MilanListView.h"
 #import "MilanWallpaper.h"
 #include <fcntl.h>
@@ -565,6 +566,8 @@ setEnabledIcon(NSButton *b, BOOL on)
 		{ "Set as Desktop Picture", @selector(setDesktopPicture:) },
 		{ "Rename\xe2\x80\xa6", @selector(renameSelection:) }, { "Put Back", @selector(putBack:) },
 		{ NULL, NULL },
+		{ "Delete Immediately\xe2\x80\xa6", @selector(deleteImmediately:) },
+		{ NULL, NULL },
 		{ "Cut", @selector(cutFiles:) }, { "Copy", @selector(copyFiles:) }, { "Paste", @selector(pasteFiles:) },
 		{ NULL, NULL },
 		{ "Move to Trash", @selector(trashSelection:) }, { "New Folder", @selector(newFolder:) },
@@ -661,6 +664,7 @@ isPicture(MilanEntry *e)
 	if (a == @selector(setDesktopPicture:)) return [[cur selectedEntries] count] == 1 && isPicture([[cur selectedEntries] objectAtIndex: 0]);
 	if (a == @selector(putBack:)) return inTrash && has;
 	if (a == @selector(emptyTrash:)) return YES;
+	if (a == @selector(deleteImmediately:)) return inTrash && has;
 	if (inTrash && (a == @selector(newFolder:) || a == @selector(pasteFiles:) || a == @selector(renameSelection:)
 	                || a == @selector(trashSelection:)))
 		return NO;
@@ -746,31 +750,18 @@ isPicture(MilanEntry *e)
 {
 	NSArray *a = [cur selectedEntries];
 	MilanEntry *e;
-	NSPanel *pn;
-	NSTextField *tf;
-	NSButton *ok, *cancel;
-	NSInteger r;
 	if ([a count] != 1) return;
 	e = [a objectAtIndex: 0];
-	pn = [[[NSPanel alloc] initWithContentRect: NSMakeRect(0, 0, 320, 90)
-	    styleMask: NSTitledWindowMask backing: NSBackingStoreBuffered defer: NO] autorelease];
-	[pn setTitle: @"Rename"];
-	tf = [[[NSTextField alloc] initWithFrame: NSMakeRect(16, 48, 288, 22)] autorelease];
-	[tf setStringValue: [e displayName]];
-	ok = barButton(@"Rename", NSMakeRect(224, 12, 80, 26), NSApp, @selector(stopModalWithCode:), nil);
-	cancel = barButton(@"Cancel", NSMakeRect(136, 12, 80, 26), NSApp, @selector(stopModalWithCode:), nil);
-	[ok setTag: 1]; [cancel setTag: 0];
-	[ok setTarget: self]; [ok setAction: @selector(modalButton:)];
-	[cancel setTarget: self]; [cancel setAction: @selector(modalButton:)];
-	[ok setKeyEquivalent: @"\r"];
-	[[pn contentView] addSubview: tf]; [[pn contentView] addSubview: ok]; [[pn contentView] addSubview: cancel];
-	[pn center];
-	[pn makeFirstResponder: tf];
-	r = [NSApp runModalForWindow: pn];
-	[pn orderOut: nil];
-	if (r == 1 && [[tf stringValue] length] && ![MilanNFC([tf stringValue]) isEqualToString: [e displayName]]
-	    && [[tf stringValue] rangeOfString: @"/"].location == NSNotFound)
-		[MilanFileOps renamePath: e->path to: [tf stringValue] done: ^(NSString *err) { [self report: err]; [self load: NO]; }];
+	[e retain];
+	[MilanDialog showOver: host title: [NSString stringWithFormat: @"Rename \u201c%@\u201d", [e displayName]]
+	              message: @"Enter a new name:" textDefault: [e displayName] okTitle: @"Rename"
+	           completion: ^(BOOL ok, NSString *name) {
+		if (ok && [name length] && ![MilanNFC(name) isEqualToString: [e displayName]] && [name rangeOfString: @"/"].location == NSNotFound)
+			[MilanFileOps renamePath: e->path to: name done: ^(NSString *err) { [self report: err]; [self load: NO]; }];
+		else if (ok && [name rangeOfString: @"/"].location != NSNotFound)
+			[status setStringValue: @"A name cannot contain \"/\"."];
+		[e release];
+	}];
 }
 
 - (void) modalButton: (id)b { [NSApp stopModalWithCode: [b tag]]; }
@@ -788,9 +779,25 @@ isPicture(MilanEntry *e)
 
 - (void) emptyTrash: (id)s
 {
-	if (NSRunAlertPanel(@"Empty the Trash?", @"All items in the Trash will be permanently deleted. This cannot be undone.",
-	                    @"Empty Trash", @"Cancel", nil) != NSAlertDefaultReturn) return;
-	[MilanTrash emptyDone: ^(NSString *e) { [self report: e]; [self load: NO]; }];
+	if (![MilanTrash hasItems]) { NSBeep(); [status setStringValue: @"The Trash is already empty."]; return; }
+	[MilanDialog showOver: host title: @"Empty the Trash?"
+	              message: @"All items in the Trash will be permanently deleted. This cannot be undone."
+	          textDefault: nil okTitle: @"Empty Trash"
+	           completion: ^(BOOL ok, NSString *t) { if (ok) [self emptyTrashNoConfirm]; }];
+}
+
+/* in the Trash: delete the selected items for good, after asking */
+- (void) deleteImmediately: (id)s
+{
+	NSArray *p = [self selectedPaths];
+	if (![p count] || !MilanPathInTrash([self currentPath])) { NSBeep(); return; }
+	[MilanDialog showOver: host title: @"Delete these items immediately?"
+	              message: [NSString stringWithFormat: @"%lu item%@ will be permanently deleted. This cannot be undone.",
+	                        (unsigned long)[p count], [p count] == 1 ? @"" : @"s"]
+	          textDefault: nil okTitle: @"Delete"
+	           completion: ^(BOOL ok, NSString *t) {
+		if (ok) [MilanTrash deletePaths: p done: ^(NSString *e) { [self report: e]; [self load: NO]; }];
+	}];
 }
 
 - (void) selectAllItems: (id)s { [cur selectAll]; }

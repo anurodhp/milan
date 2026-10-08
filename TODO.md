@@ -7,6 +7,10 @@
   browser windows and the menu bar are visible above the desktop. If not, the desktop window's stacking or its 32-bit visual is the suspect.
 
 ## Device testing (Pi)
+- In-window dialogs (`MilanDialog`): Empty Trash confirm verified with real clicks (Cancel keeps, Empty Trash deletes, Esc
+  cancels). **Not yet working/verified:** Return accepting the plain confirm (it did not in two runs; the Return key may be
+  going elsewhere, log the key in `MilanDialog -keyDown:`), the Rename overlay (text field), Delete Immediately in the Trash view.
+  Note: only send xinject keystrokes after clicking Milan's title bar, or they land in whichever app has focus.
 - Done with real input via xinject: sidebar click, rubber band, menu-bar menus, context menu and Get Info, desktop menu,
   Change Background panel (live wallpaper change, persisted), double-click a desktop folder, drag a file onto the Trash.
 - Rubber-band, type-to-select and drag-and-drop with a real mouse/keyboard (only the drop handler is self-tested).
@@ -20,14 +24,15 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
-- Unicode: validated on the Pi with names in Latin with accents, Greek, Cyrillic, Hebrew, Arabic, CJK, Korean, emoji, ZWJ
-  emoji and combining marks (`/tmp/uni`). Findings: names come back decomposed (NFD) from the filesystem, so accents
-  drew detached; fixed by showing names precomposed (`MilanNFC.m`, tables from `tools/gen_nfc.py`; this GNUstep base has no
-  ICU, so `precomposedStringWithCanonicalMapping` is not implemented). Still broken: **Hebrew, Arabic, CJK, Korean and all
-  emoji draw as `?`**, because the only fonts on the image are DejaVu and GNUstep text drawing does no per-character font
-  fallback. Needs a decision on fonts to ship (OFL: Noto Sans Hebrew/Arabic, Noto Sans CJK subset, Noto Emoji monochrome;
-  or GNU Unifont as a last resort) plus a fallback in Milan's own text drawing (split a name into runs by glyph
-  availability). Also not yet checked: RTL ordering, emoji sequences, rename/new-folder with non-ASCII, sorting order across scripts.
+- Unicode: validated on the Pi (`/tmp/uni`: accents, Greek, Cyrillic, Hebrew, Arabic, CJK, Korean, emoji, ZWJ, combining).
+  The UI font is Inter (`NSFont = "Inter-Regular"` in `GlobalDefaults.plist`; 6 faces from `build_fonts.sh`), a modern font that
+  covers Latin, Greek and Cyrillic. Accents drew detached only because names come back decomposed (NFD) and GNUstep does no
+  shaping; fixed by showing names precomposed (`MilanNFC.m`, now also in the libs-base fork as NSString canonical mapping).
+  Still `?`: **Hebrew, Arabic, CJK, Korean, emoji**, because Inter has none of them and GNUstep text drawing has no per-character
+  font fallback. DejaVu Sans (already on the image) covers Hebrew and Arabic, so a fallback in Milan's drawing would fix Hebrew
+  without new fonts (also needs right-to-left ordering); Arabic additionally needs contextual shaping (HarfBuzz); CJK/Korean/emoji
+  need new fonts (OFL: Noto Sans CJK subset, Noto Emoji monochrome, or GNU Unifont as a last resort). Also unchecked: emoji ZWJ
+  sequences, rename/new-folder with non-ASCII, sorting order across scripts.
 
 - JPEG support. GNUstep-gui is built `--disable-jpeg` (`build_gnustep_gui.sh`) and nothing builds libjpeg, so `NSImage`
   cannot read .jpg/.jpeg: wallpapers, thumbnails and Quick Look are PNG/TIFF only today. Plan: add `build_libjpeg.sh` in the

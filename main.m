@@ -180,6 +180,31 @@ check(BOOL ok, NSString *what)
 
 - (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
 
+/* -MilanBaseTest YES: the GNUstep base API this repo's libs-base fork adds (NSData options/error, NFC/NFD without ICU) */
+- (void) runBaseTest
+{
+	NSError *err = nil;
+	NSData *d;
+	NSString *nfd = @"e\u0301 a\u0308 \u03b1\u0301 \u1112\u1161\u11ab", *nfc = @"\u00e9 \u00e4 \u03ac \ud55c";
+	if ([NSData respondsToSelector: @selector(dataWithContentsOfFile:options:error:)]) {
+		d = [NSData dataWithContentsOfFile: @"/etc/passwd" options: 0 error: &err];
+		check([d length] > 0 && err == nil, @"+[NSData dataWithContentsOfFile:options:error:] reads a file");
+		d = [NSData dataWithContentsOfFile: @"/nonexistent/x" options: 0 error: &err];
+		check(d == nil && err != nil && [err code] == 260, @"...and reports a missing file as an NSError");
+	} else
+		check(NO, @"NSData lacks dataWithContentsOfFile:options:error: (old libgnustep-base)");
+	if ([nfd respondsToSelector: @selector(precomposedStringWithCanonicalMapping)]) {
+		NSString *c = nil;
+		@try { c = [nfd precomposedStringWithCanonicalMapping]; } @catch (NSException *e) { NSLog(@"BASETEST exception %@", e); }
+		check([c isEqualToString: nfc], @"NFC composes e+acute, a+diaeresis, alpha+tonos and Hangul jamo");
+		check([[nfc decomposedStringWithCanonicalMapping] isEqualToString: nfd], @"NFD decomposes them again");
+		check([[@"a\u0323\u0301" precomposedStringWithCanonicalMapping] isEqualToString: @"\u1ea1\u0301"]
+		      || [[@"a\u0323\u0301" precomposedStringWithCanonicalMapping] isEqualToString: @"\u1ea5"] == NO, @"combining marks are reordered/composed");
+		check([MilanNFC(nfd) isEqualToString: [nfd precomposedStringWithCanonicalMapping]], @"agrees with Milan's own MilanNFC");
+	}
+	NSLog(@"BASETEST done");
+}
+
 - (void) newWindow: (id)s { [self openWindowAtPath: [MilanPrefs newWindowPath]]; }
 - (void) showPrefs: (id)s { [MilanPrefs show]; }
 - (void) windowClosed: (MilanWindow *)w
@@ -191,7 +216,7 @@ check(BOOL ok, NSString *what)
 FWD(goBack) FWD(goForward) FWD(goUp) FWD(goHome) FWD(goApplications) FWD(goRoot)
 FWD(viewAsIcons) FWD(viewAsList) FWD(viewAsColumns) FWD(toggleHidden)
 FWD(openSelection) FWD(getInfo) FWD(copyFiles) FWD(cutFiles) FWD(pasteFiles)
-FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
+FWD(putBack) FWD(emptyTrash) FWD(deleteImmediately) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
 
 - (BOOL) validateMenuItem: (NSMenuItem *)i
 {
@@ -233,7 +258,11 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 	add_item(m, @"Rename…", @selector(renameSelection:), @"", self);
 	add_item(m, @"Move to Trash", @selector(trashSelection:), @"\x7f", self);
 	add_item(m, @"Put Back", @selector(putBack:), @"", self);
-	add_item(m, @"Empty Trash\u2026", @selector(emptyTrash:), @"", self);
+	{
+		NSMenuItem *et = add_item(m, @"Empty Trash\u2026", @selector(emptyTrash:), @"\x7f", self);
+		[et setKeyEquivalentModifierMask: NSCommandKeyMask | NSShiftKeyMask];
+	}
+	add_item(m, @"Delete Immediately\u2026", @selector(deleteImmediately:), @"", self);
 	add_item(m, @"Close Window", @selector(performClose:), @"w", nil);
 	[main setSubmenu: m forItem: add_item(main, @"File", NULL, nil, nil)]; [m release];
 
@@ -283,6 +312,7 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 		NSString *info;
 		if ([d objectForKey: @"MilanViewMode"]) [[self active] setMode: (int)[d integerForKey: @"MilanViewMode"]];
 		if ([d boolForKey: @"MilanAbout"]) [self performSelector: @selector(showAbout:) withObject: nil afterDelay: 1.0];
+		if ([d boolForKey: @"MilanBaseTest"]) [self runBaseTest];
 		if ([d boolForKey: @"MilanMultiTest"]) [self runMultiTest];
 		if ([d boolForKey: @"MilanSelfTest"]) [[self active] runSelfTest];
 		if ([d boolForKey: @"MilanTestWindow"])
