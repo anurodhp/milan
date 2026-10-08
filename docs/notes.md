@@ -17,3 +17,4 @@
   for the whole resize; XTEST requests from other clients are then not serviced, so the button release never arrives and
   every X client, including xinject, hangs. Recovery: `kill -USR1 <wmaker pid>` (restarts the WM in place and releases
   the grab; it re-runs the autostart script, so an extra Terminal.app appears). Moving by the title bar is fine.
+- `-[NSUserDefaults setBool: NO forKey:]` hangs the action it is called from in this GNUstep base (setBool:YES is fine); store `[NSNumber numberWithInt:]` with `setObject:forKey:` and read with `boolForKey:`.
