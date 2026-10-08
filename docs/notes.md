@@ -1,6 +1,9 @@
 # Platform notes (found the hard way)
 
-- **New X windows of our own painted blank** on this stack (Eau + Window Maker, Pi): a context-menu NSMenu pop-up
+- **Screenshots can mislead.** `xwd -root` returned blank for some windows (menu bar, browser window bodies, the
+  panels below) that `xwd -id <window>` showed fully painted. Several "blank window" conclusions below may be capture
+  artifacts; the context-menu overlay and these notes were written before that was known. Check on the real display.
+- **New X windows of our own painted blank (in root captures)** on this stack (Eau + Window Maker, Pi): a context-menu NSMenu pop-up
   (mapped, never painted), a custom borderless NSWindow, GNUstep's standard About NSPanel. Views inside an
   already-painted window draw fine. So pop-ups are overlay views (`MilanContent.m`), not windows. Titled NSWindows
   (the info panels) do paint.

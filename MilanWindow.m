@@ -6,7 +6,10 @@
 #import "MilanInfoPanel.h"
 #import "MilanIcons.h"
 #import "MilanTrash.h"
+#import "MilanWallpaper.h"
 #include <fcntl.h>
+#include <sys/mount.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dispatch/dispatch.h>
@@ -14,6 +17,16 @@
 #define BAR_H 40.0
 #define STATUS_H 20.0
 #define SIDEBAR_W 140.0
+
+/* the desktop: a borderless window at the desktop level; Window Maker gives such a window no decoration, puts it
+ * on every workspace, hides it from the window list and keeps it below everything (wmspec.c handleWindowType) */
+@interface MilanDesktopWindow : NSWindow
+@end
+
+@implementation MilanDesktopWindow
+- (BOOL) canBecomeKeyWindow { return YES; }
+- (BOOL) canBecomeMainWindow { return NO; }
+@end
 
 @implementation MilanWindow
 
@@ -51,25 +64,6 @@ setEnabledIcon(NSButton *b, BOOL on)
 	NSString *n = [b identifier];
 	[b setEnabled: on];
 	[b setImage: [MilanIcons imageNamed: [NSString stringWithFormat: @"tb-%@-%@", n, on ? @"normal" : @"disabled"]]];
-}
-
-/* Whether any Trash has something in it; cached for a couple of seconds so drawing stays cheap. */
-static BOOL
-trashHasItems(void)
-{
-	static NSTimeInterval at;
-	static BOOL full;
-	NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
-	if (now - at > 2.0) {
-		NSFileManager *fm = [NSFileManager defaultManager];
-		NSString *d, *n;
-		full = NO;
-		for (d in [MilanTrash trashDirectories])
-			for (n in [fm contentsOfDirectoryAtPath: d error: NULL])
-				if (![n isEqualToString: MilanTrashOriginsName] && ![n isEqualToString: @".DS_Store"] && ![n isEqualToString: @".gwdir"]) full = YES;
-		at = now;
-	}
-	return full;
 }
 
 - (id) initWithPath: (NSString *)p
@@ -201,6 +195,42 @@ trashHasItems(void)
 	return self;
 }
 
+- (id) initDesktop
+{
+	NSRect scr = [[NSScreen mainScreen] frame];
+	NSView *dv;
+	NSString *dir = [[NSUserDefaults standardUserDefaults] stringForKey: @"MilanDesktopPath"];	/* default ~/Desktop */
+	self = [super init];
+	if (![dir length]) dir = [NSHomeDirectory() stringByAppendingPathComponent: @"Desktop"];
+	desktop = YES;
+	history = [[NSMutableArray alloc] init];
+	hIndex = -1;
+	ascending = YES;
+	[[NSFileManager defaultManager] createDirectoryAtPath: dir withIntermediateDirectories: YES attributes: nil error: NULL];
+	window = [[MilanDesktopWindow alloc] initWithContentRect: scr styleMask: NSBorderlessWindowMask
+	                                                 backing: NSBackingStoreBuffered defer: NO];
+	[window setLevel: NSDesktopWindowLevel];
+	[window setReleasedWhenClosed: NO];
+	[window setDelegate: self];
+	[window setTitle: @"Desktop"];
+	dv = [[[MilanDesktopView alloc] initWithFrame: NSMakeRect(0, 0, scr.size.width, scr.size.height)] autorelease];
+	[window setContentView: dv];
+	/* keep icons clear of the menu bar (top) and the Window Maker dock column (right) */
+	host = [[[NSView alloc] initWithFrame: NSMakeRect(0, 8, scr.size.width - 72, scr.size.height - 34)] autorelease];
+	[host setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
+	[dv addSubview: host];
+	views[0] = [[MilanIconView alloc] initForDesktop];
+	[views[0] setDelegate: self];
+	[self buildContextMenu];
+	cur = views[0];
+	[[cur view] setFrame: [host bounds]];
+	[host addSubview: [cur view]];
+	[self goTo: dir];
+	[window orderFront: nil];
+	[window display];
+	return self;
+}
+
 - (void) dealloc
 {
 	int i;
@@ -210,7 +240,7 @@ trashHasItems(void)
 	for (i = 0; i < 3; i++) { [views[i] setDelegate: nil]; [(id)views[i] release]; }
 	[window setDelegate: nil];
 	[window release]; [path release]; [history release]; [entries release];
-	[clipPaths release]; [ctxMenu release];
+	[clipPaths release]; [ctxMenu release]; [blankMenu release];
 	[super dealloc];
 }
 
@@ -244,7 +274,9 @@ trashHasItems(void)
 	setEnabledIcon(fwdBtn, hIndex < (NSInteger)[history count] - 1);
 	setEnabledIcon(upBtn, ![path isEqualToString: @"/"] && ![path isEqualToString: MilanTrashPath]);
 	[self syncSidebar];
-	if ([path isEqualToString: MilanTrashPath]) {
+	if (desktop) {
+		[window setTitle: @"Desktop"];
+	} else if ([path isEqualToString: MilanTrashPath]) {
 		[window setTitle: @"Trash"];
 	} else {
 		[window setTitle: [path isEqualToString: @"/"] ? @"/" : [path lastPathComponent]];
@@ -272,7 +304,7 @@ trashHasItems(void)
 	if ([[c identifier] isEqualToString: @"favicon"]) {
 		if ([[f objectAtIndex: 1] isEqualToString: MilanTrashPath]) {
 			/* the Eau theme's own Recycler images (common_RecyclerEmpty/Full), as GWorkspace's dock uses */
-			NSImage *ti = [NSImage imageNamed: trashHasItems() ? @"common_RecyclerFull" : @"common_RecyclerEmpty"];
+			NSImage *ti = [NSImage imageNamed: MilanTrashHasItems() ? @"common_RecyclerFull" : @"common_RecyclerEmpty"];
 			if (ti) return ti;
 		}
 		return [MilanIcons imageNamed: [f objectAtIndex: 2]];
@@ -305,9 +337,10 @@ trashHasItems(void)
 	unsigned g = ++gen;
 	[MilanEntry loadPath: path showHidden: showHidden sort: sortKey ascending: ascending
 	          completion: ^(NSArray *e, NSString *err) {
-		if (g != gen) return;
+			if (g != gen) return;
 		[entries release];
 		entries = [(e ? e : [NSArray array]) retain];
+		if (desktop && !err) { NSArray *x = [[entries arrayByAddingObjectsFromArray: [self desktopExtras]] retain]; [entries release]; entries = x; }
 		if (navigate) [cur setPath: path entries: entries];
 		else [cur reloadEntries: entries];
 		if (err) [status setStringValue: err];
@@ -315,6 +348,27 @@ trashHasItems(void)
 		[sidebarTable reloadData];
 		[self syncSidebar];
 	}];
+}
+
+/* Trash and mounted volumes, shown on the desktop after the folder's own items */
+- (NSArray *) desktopExtras
+{
+	NSMutableArray *x = [NSMutableArray array];
+	MilanEntry *t = [[[MilanEntry alloc] init] autorelease];
+	struct statfs *fs = NULL;
+	int n = getfsstat(NULL, 0, MNT_NOWAIT), i;
+	t->name = [@"Trash" retain]; t->path = [MilanTrashPath retain]; t->isDir = YES; t->mode = S_IFDIR | 0755;
+	t->kind = [@"Trash" retain];
+	[x addObject: t];
+	if (n > 0 && (fs = calloc((size_t)n, sizeof *fs))) n = getfsstat(fs, (int)(n * sizeof *fs), MNT_NOWAIT); else n = 0;
+	for (i = 0; i < n; i++) {
+		NSString *m = [NSString stringWithUTF8String: fs[i].f_mntonname];
+		MilanEntry *v;
+		if (!([m hasPrefix: @"/Volumes/"] || [m hasPrefix: @"/mnt/"] || [m hasPrefix: @"/media/"])) continue;
+		if ((v = [MilanEntry entryForPath: m])) { v->isVolume = YES; [x addObject: v]; }
+	}
+	free(fs);
+	return x;
 }
 
 - (void) contentLoadPath: (NSString *)p completion: (void (^)(NSArray *))done
@@ -387,6 +441,7 @@ trashHasItems(void)
 - (void) switchToMode: (int)m
 {
 	NSView *v;
+	if (desktop) return;	/* the desktop is always the icon view */
 	mode = m;
 	[modeSeg setSelectedSegment: m];
 	for (v in [[[host subviews] copy] autorelease]) [v removeFromSuperview];
@@ -439,7 +494,11 @@ trashHasItems(void)
 	}
 	if ([sel count] == 1) {
 		e = [sel objectAtIndex: 0];
-		if (e->isDir && !e->isApp) { [self goTo: e->path]; return; }
+		if (e->isDir && !e->isApp) {
+			if (desktop) [[NSApp delegate] performSelector: @selector(openWindowAtPath:) withObject: e->path];
+			else [self goTo: e->path];
+			return;
+		}
 	}
 	for (e in sel) {
 		if (MilanPathInTrash(e->path)) continue;	/* belt and braces: never launch or open from a Trash */
@@ -465,6 +524,7 @@ trashHasItems(void)
 {
 	const struct { const char *title; SEL action; } items[] = {
 		{ "Open", @selector(openSelection:) }, { "Get Info", @selector(getInfo:) },
+		{ "Set as Desktop Picture", @selector(setDesktopPicture:) },
 		{ "Rename\xe2\x80\xa6", @selector(renameSelection:) }, { "Put Back", @selector(putBack:) },
 		{ NULL, NULL },
 		{ "Cut", @selector(cutFiles:) }, { "Copy", @selector(copyFiles:) }, { "Paste", @selector(pasteFiles:) },
@@ -482,12 +542,48 @@ trashHasItems(void)
 	}
 }
 
-- (NSMenu *) contentMenu { return ctxMenu; }
+- (NSMenu *) contentMenu
+{
+	if (![[cur selectedEntries] count]) {
+		if (!blankMenu) {
+			/* right-click on bare background: folder actions, plus Change Background on the desktop */
+			blankMenu = [[NSMenu alloc] initWithTitle: @""];
+			[[blankMenu addItemWithTitle: @"New Folder" action: @selector(newFolder:) keyEquivalent: @""] setTarget: self];
+			[[blankMenu addItemWithTitle: @"Paste" action: @selector(pasteFiles:) keyEquivalent: @""] setTarget: self];
+			[[blankMenu addItemWithTitle: @"Get Info" action: @selector(getInfo:) keyEquivalent: @""] setTarget: self];
+			if (desktop) {
+				[blankMenu addItem: [NSMenuItem separatorItem]];
+				[[blankMenu addItemWithTitle: @"Change Background\u2026" action: @selector(changeBackground:) keyEquivalent: @""] setTarget: self];
+			}
+		}
+		return blankMenu;
+	}
+	return ctxMenu;
+}
+
+- (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
+
+/* PNG and TIFF only: GNUstep's gui here links libpng and libtiff, not libjpeg */
+static BOOL
+isPicture(MilanEntry *e)
+{
+	NSString *x = [[e->name pathExtension] lowercaseString];
+	return !e->isDir && ([x isEqualToString: @"png"] || [x isEqualToString: @"tif"] || [x isEqualToString: @"tiff"]);
+}
+
+- (void) setDesktopPicture: (id)s
+{
+	MilanEntry *e = [[cur selectedEntries] count] == 1 ? [[cur selectedEntries] objectAtIndex: 0] : nil;
+	MilanWallpaper *w = [MilanWallpaper shared];
+	if (e && isPicture(e)) [w setImagePath: e->path fill: [w fill] color: [w color]];
+}
 
 - (BOOL) validateMenuItem: (NSMenuItem *)item
 {
 	SEL a = [item action];
 	BOOL has = [[cur selectedEntries] count] > 0, inTrash = MilanPathInTrash([self currentPath]);
+	if (a == @selector(changeBackground:)) return YES;
+	if (a == @selector(setDesktopPicture:)) return [[cur selectedEntries] count] == 1 && isPicture([[cur selectedEntries] objectAtIndex: 0]);
 	if (a == @selector(putBack:)) return inTrash && has;
 	if (a == @selector(emptyTrash:)) return YES;
 	if (inTrash && (a == @selector(newFolder:) || a == @selector(pasteFiles:) || a == @selector(renameSelection:)
@@ -689,6 +785,8 @@ exists(NSString *p)
 }
 
 /* ---- window ---- */
+
+- (BOOL) windowShouldClose: (id)sender { return !desktop; }
 
 - (void) windowWillClose: (NSNotification *)n
 {

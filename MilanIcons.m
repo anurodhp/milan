@@ -1,4 +1,5 @@
 #import "MilanIcons.h"
+#import "MilanTrash.h"
 
 static NSDictionary *
 extensionKinds(void)
@@ -48,6 +49,13 @@ extensionKinds(void)
 {
 	NSString *kind;
 	NSImage *img;
+	if ([e->path isEqualToString: MilanTrashPath]) {
+		/* the Eau theme's own recycler images, as the sidebar and GWorkspace's dock use */
+		img = [NSImage imageNamed: MilanTrashHasItems() ? @"common_RecyclerFull" : @"common_RecyclerEmpty"];
+		if (img) return img;
+		return [self imageNamed: @"ft-trash"];
+	}
+	if (e->isVolume) return [self imageNamed: @"ft-disk"];
 	if (e->isApp) {
 		static NSMutableDictionary *appIcons;
 		id cached;

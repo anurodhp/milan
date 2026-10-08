@@ -26,9 +26,17 @@
 - (BOOL) isFlipped { return YES; }
 - (BOOL) acceptsFirstResponder { return YES; }
 
+- (void) setDesktop: (BOOL)d { desktop = d; [self relayout]; }
+
 - (void) relayout
 {
 	NSScrollView *scroll = [self enclosingScrollView];
+	if (desktop) {
+		perCol = MAX(1, (NSInteger)((NSHeight([self bounds]) - 2 * PAD) / CELL_H));
+		cols = ([entries count] + perCol - 1) / perCol;
+		[self setNeedsDisplay: YES];
+		return;
+	}
 	NSSize vs, want;
 	NSInteger c, rows;
 	if (relaying || !scroll) return;
@@ -101,11 +109,22 @@
 
 - (NSRect) cellRect: (NSInteger)i
 {
+	if (desktop) {
+		NSInteger col = i / MAX(perCol, 1), row = i % MAX(perCol, 1);
+		return NSMakeRect(NSWidth([self bounds]) - PAD - (col + 1) * CELL_W, PAD + row * CELL_H, CELL_W, CELL_H);
+	}
 	return NSMakeRect(PAD + (i % cols) * CELL_W, PAD + (i / cols) * CELL_H, CELL_W, CELL_H);
 }
 
 - (NSInteger) indexAtPoint: (NSPoint)p
 {
+	if (desktop) {
+		NSInteger col = (NSInteger)floor((NSWidth([self bounds]) - PAD - p.x) / CELL_W) , row = (NSInteger)floor((p.y - PAD) / CELL_H), i;
+		if (p.y < PAD || row >= perCol || NSWidth([self bounds]) - PAD - p.x < -CELL_W + 1) return -1;
+		if (p.x > NSWidth([self bounds]) - PAD) return -1;
+		i = col * perCol + row;
+		return col >= 0 && i >= 0 && i < (NSInteger)[entries count] ? i : -1;
+	}
 	NSInteger c = (NSInteger)((p.x - PAD) / CELL_W), r = (NSInteger)((p.y - PAD) / CELL_H), i;
 	if (p.x < PAD || p.y < PAD || c >= cols) return -1;
 	i = r * cols + c;
@@ -127,11 +146,17 @@
 		    [NSFont systemFontOfSize: 11], NSFontAttributeName, ps, NSParagraphStyleAttributeName,
 		    [NSColor selectedMenuItemTextColor], NSForegroundColorAttributeName, nil] retain];
 	}
-	[[NSColor controlBackgroundColor] set];
-	NSRectFill(dirty);
+	if (!desktop) {
+		[[NSColor controlBackgroundColor] set];
+		NSRectFill(dirty);
+	}
 	if (!n || !cols) return;
-	first = (NSInteger)((NSMinY(dirty) - PAD) / CELL_H) * cols;
-	last = ((NSInteger)((NSMaxY(dirty) - PAD) / CELL_H) + 1) * cols;
+	if (desktop) {
+		first = 0; last = n;
+	} else {
+		first = (NSInteger)((NSMinY(dirty) - PAD) / CELL_H) * cols;
+		last = ((NSInteger)((NSMaxY(dirty) - PAD) / CELL_H) + 1) * cols;
+	}
 	if (first < 0) first = 0;
 	if (last > n) last = n;
 	for (i = first; i < last; i++) {
@@ -153,7 +178,22 @@
 		}
 		[img drawInRect: ir fromRect: NSZeroRect operation: NSCompositeSourceOver
 		     fraction: e->isHidden ? 0.5 : 1.0 respectFlipped: YES hints: nil];
-		[e->name drawInRect: tr withAttributes: s ? selAttrs : attrs];
+		if (desktop && !s) {
+			/* white label with a dark shadow so it reads on any wallpaper */
+			static NSDictionary *white, *shadow;
+			if (!white) {
+				NSMutableParagraphStyle *ps = [[[NSMutableParagraphStyle alloc] init] autorelease];
+				[ps setAlignment: NSCenterTextAlignment];
+				[ps setLineBreakMode: NSLineBreakByTruncatingMiddle];
+				white = [[NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 11], NSFontAttributeName,
+				    ps, NSParagraphStyleAttributeName, [NSColor whiteColor], NSForegroundColorAttributeName, nil] retain];
+				shadow = [[NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 11], NSFontAttributeName,
+				    ps, NSParagraphStyleAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, nil] retain];
+			}
+			[e->name drawInRect: NSOffsetRect(tr, 1, 1) withAttributes: shadow];
+			[e->name drawInRect: tr withAttributes: white];
+		} else
+			[e->name drawInRect: tr withAttributes: s ? selAttrs : attrs];
 	}
 	if (rubber) {
 		[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.2] set];
@@ -350,8 +390,18 @@
 	return self;
 }
 
+/* the desktop: the grid on its own (no scroll view), transparent over the wallpaper */
+- (id) initForDesktop
+{
+	self = [super init];
+	grid = [[MilanIconGrid alloc] initWithFrame: NSMakeRect(0, 0, 100, 100)];
+	[grid setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
+	[grid setDesktop: YES];
+	return self;
+}
+
 - (void) dealloc { [grid release]; [scroll release]; [super dealloc]; }
-- (NSView *) view { return scroll; }
+- (NSView *) view { return scroll ? (NSView *)scroll : (NSView *)grid; }
 - (void) setDelegate: (id <MilanContentDelegate>)d { grid->delegate = d; }
 - (NSString *) browsedPath { return grid->path; }
 - (NSArray *) selectedEntries { return [grid selectedEntries]; }

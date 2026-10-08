@@ -7,6 +7,7 @@
 #import <AppKit/AppKit.h>
 #import "MilanWindow.h"
 #import "MilanInfoPanel.h"
+#import "MilanWallpaper.h"
 #include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -167,6 +168,15 @@ check(BOOL ok, NSString *what)
 	}];
 }
 
+- (void) openDesktop
+{
+	MilanWindow *w = [[MilanWindow alloc] initDesktop];
+	[windows addObject: w];
+	[w release];
+}
+
+- (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
+
 - (void) newWindow: (id)s { [self openWindowAtPath: NSHomeDirectory()]; }	/* a preference for this is in TODO.md */
 - (void) windowClosed: (MilanWindow *)w
 {
@@ -234,6 +244,7 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 	add_item(m, @"as List", @selector(viewAsList:), @"2", self);
 	add_item(m, @"as Columns", @selector(viewAsColumns:), @"3", self);
 	add_item(m, @"Show Hidden Files", @selector(toggleHidden:), @"H", self);
+	add_item(m, @"Change Desktop Background\u2026", @selector(changeBackground:), @"", self);
 	[main setSubmenu: m forItem: add_item(main, @"View", NULL, nil, nil)]; [m release];
 
 	m = [[NSMenu alloc] initWithTitle: @"Go"];
@@ -258,7 +269,10 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 	if ([args count] > 1 && [[NSFileManager defaultManager] fileExistsAtPath: [args objectAtIndex: 1] isDirectory: &dir] && dir)
 		start = [args objectAtIndex: 1];
 	[self buildMenus];
-	[self openWindowAtPath: start ? start : NSHomeDirectory()];
+	if ([[NSUserDefaults standardUserDefaults] boolForKey: @"MilanDesktop"]) [self openDesktop];
+	if (![[NSUserDefaults standardUserDefaults] objectForKey: @"MilanOpenBrowser"]
+	    || [[NSUserDefaults standardUserDefaults] boolForKey: @"MilanOpenBrowser"])
+		[self openWindowAtPath: start ? start : NSHomeDirectory()];
 	{
 		NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 		NSString *info;

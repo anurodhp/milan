@@ -13,7 +13,7 @@ typedef enum { MilanSortName, MilanSortSize, MilanSortDate, MilanSortKind } Mila
 	mode_t mode;
 	uid_t uid;
 	gid_t gid;
-	BOOL isDir, isLink, isApp, isHidden;
+	BOOL isDir, isLink, isApp, isHidden, isVolume;
 	NSString *kind, *dateString, *sizeString;	/* lazy */
 }
 - (NSString *) kind;

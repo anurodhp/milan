@@ -23,13 +23,17 @@
 	NSArray *clipPaths;
 	BOOL clipCut;
 	NSInteger clipChange;
-	NSMenu *ctxMenu;
+	NSMenu *ctxMenu, *blankMenu;
+	BOOL desktop;
 	NSScrollView *sidebar;
 	NSTableView *sidebarTable;
 	NSArray *favorites;
 	BOOL syncingSidebar;
 }
 - (id) initWithPath: (NSString *)p;
+- (id) initDesktop;
+- (void) changeBackground: (id)s;
+- (void) setDesktopPicture: (id)s;
 - (NSWindow *) window;
 - (NSString *) currentPath;
 - (void) goTo: (NSString *)p;

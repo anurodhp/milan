@@ -11,6 +11,8 @@
 	NSMutableIndexSet *sel;
 	NSInteger anchor, cols;
 	BOOL relaying, rubber, dragging, pendingDrag;
+	BOOL desktop;		/* transparent, no scrolling, icons flow down from the top right */
+	NSInteger perCol;
 	NSPoint downPoint;
 	NSRect rubberRect;
 	NSMutableIndexSet *baseSel;
@@ -20,6 +22,7 @@
 - (void) setEntries: (NSArray *)e keepSelection: (BOOL)keep;
 - (NSArray *) selectedEntries;
 - (void) selectPath: (NSString *)p;
+- (void) setDesktop: (BOOL)d;
 @end
 
 @interface MilanIconView : NSObject <MilanContent>
@@ -27,4 +30,5 @@
 	NSScrollView *scroll;
 	MilanIconGrid *grid;
 }
+- (id) initForDesktop;
 @end

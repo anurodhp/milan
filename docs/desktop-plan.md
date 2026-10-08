@@ -55,3 +55,10 @@ Xlib calls because GNUstep has no shape API. Drawing the wallpaper ourselves is 
 
 ## Order
 `xinject` first (it unblocks testing everything, including the desktop), then milestones 1 to 6 in order.
+
+## Status (2026-10-08)
+Built: milestones 1 to 5 (desktop window at `NSDesktopWindowLevel`, wallpaper with fill modes and persistence,
+icons from `~/Desktop` (or `MilanDesktopPath`), Trash and mounted volumes, right-click menu, Change Background
+panel). Milestone 6 (start it with the session) is not done; the preference/autostart wiring is in `TODO.md`.
+The desktop is a `MilanWindow` in desktop mode, so open, copy/paste, rename, trash, drag and drop and live refresh
+are the browser windows' own code.

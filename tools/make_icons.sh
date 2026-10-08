@@ -58,4 +58,18 @@ cat > "$T/app.svg" <<SVG
 SVG
 "$T/svg2png" "$T/app.svg" "$T/app.png" 128 && sips -s format tiff "$T/app.png" --out icons/app/Milan.tiff > /dev/null
 "$T/svg2png" "$T/app.svg" icons/app/Milan.png 512
+# wallpapers (1280x720 PNG; GNUstep's gui links libpng and libtiff, not libjpeg), from icons/wallpapers/src
+for f in icons/wallpapers/src/wp-*.svg; do
+    "$T/svg2png" "$f" "icons/wallpapers/$(basename "$f" .svg).png" 1280 720
+done
+# the Hexley wallpaper: a dark gradient with the head in the corner
+B64H="$(base64 < icons/app/hexley_head.png | tr -d '\n')"
+cat > "$T/wp-hexley.svg" <<SVG
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#16213e"/><stop offset="1" stop-color="#3b2a63"/></linearGradient></defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <image x="880" y="330" width="360" height="367" opacity="0.92" xlink:href="data:image/png;base64,$B64H"/>
+</svg>
+SVG
+"$T/svg2png" "$T/wp-hexley.svg" icons/wallpapers/wp-hexley.png 1280 720
 ls -1 icons/*.tiff | wc -l | sed 's/$/ icons written/'

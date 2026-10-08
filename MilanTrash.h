@@ -9,7 +9,8 @@ extern NSString *const MilanTrashPath;	/* the virtual path of the merged Trash v
 extern NSString *const MilanTrashOriginsName;	/* sidecar file name, hidden from listings */
 
 BOOL MilanPathInTrash(NSString *path);	/* inside any trash directory (or the virtual Trash itself) */
-void MilanSetTrashHome(NSString *dir);	/* tests only: replaces ~/.Trash */
+void MilanSetTrashHome(NSString *dir);
+BOOL MilanTrashHasItems(void);	/* any item in any Trash (cached for 0.5 s) */	/* tests only: replaces ~/.Trash */
 
 @interface MilanTrash : NSObject
 /* Existing trash directories: the home one first, then one per mounted volume that has one. */

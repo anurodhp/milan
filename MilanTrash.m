@@ -198,3 +198,22 @@ trashName(NSFileManager *fm, NSString *dir, NSString *name)
 }
 
 @end
+
+/* Whether any Trash has something in it; cached for half a second so drawing stays cheap. */
+BOOL
+MilanTrashHasItems(void)
+{
+	static NSTimeInterval at;
+	static BOOL full;
+	NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+	if (now - at > 0.5) {
+		NSFileManager *fm = [NSFileManager defaultManager];
+		NSString *d, *n;
+		full = NO;
+		for (d in [MilanTrash trashDirectories])
+			for (n in [fm contentsOfDirectoryAtPath: d error: NULL])
+				if (![n isEqualToString: MilanTrashOriginsName] && ![n isEqualToString: @".DS_Store"] && ![n isEqualToString: @".gwdir"]) full = YES;
+		at = now;
+	}
+	return full;
+}

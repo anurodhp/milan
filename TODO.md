@@ -1,6 +1,14 @@
 # Milan TODO
 
-## Device testing (Pi, never exercised by a real click)
+## Verify by eye on the Pi
+- With the desktop running (`Milan -MilanDesktop YES`), my root screenshots (`xwd -root`) showed the desktop window's
+  wallpaper and icons but **the browser window body and the menu bar looked blank**, while capturing those windows by id
+  (`xwd -id`) showed them fully painted. I could not tell which is true on the real display; please check that the
+  browser windows and the menu bar are visible above the desktop. If not, the desktop window's stacking or its 32-bit visual is the suspect.
+
+## Device testing (Pi)
+- Done with real input via xinject: sidebar click, rubber band, menu-bar menus, context menu and Get Info, desktop menu,
+  Change Background panel (live wallpaper change, persisted), double-click a desktop folder, drag a file onto the Trash.
 - Rubber-band, type-to-select and drag-and-drop with a real mouse/keyboard (only the drop handler is self-tested).
 - App launch by double-click (`launchApplication:`).
 - Sort indicator arrows in list headers (code in place, not visually checked).
@@ -26,7 +34,14 @@
 - Real mouse-drag test of drag and drop (all three views have it now).
 - Sidebar: user-editable favorites.
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.
-- Desktop drawing: see `docs/desktop-plan.md`. Build `xinject` (XTEST) first to test with real input.
+- Desktop (see `docs/desktop-plan.md`): wallpaper, icons, Trash and volumes, right-click menu and the Change Background
+  panel are built and driven with real input via `xinject`. Still to do:
+  - remember icon positions on the desktop (today they always flow from the top right, by name) and let icons be dragged around;
+  - session start-up: launch `Milan -MilanDesktop YES -MilanOpenBrowser NO` from the Window Maker autostart, and a
+    preference instead of launch arguments (`MilanDesktop`, `MilanDesktopPath`, `MilanOpenBrowser`);
+  - Change Background: "Add Picture..." via an open panel (today: drop PNG/TIFF files on the panel, or put them in ~/Pictures);
+    JPEG needs libjpeg in GNUstep-gui;
+  - the wallpaper canvas is built at the first draw (one decode and scale of a 1280x720 PNG); rebuild on screen-size change (RANDR).
 
 ## Notes
 - Background work must reach the UI via `MilanRunOnMain()`, not `dispatch_async(main queue)` or
