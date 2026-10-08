@@ -2,7 +2,7 @@
  * MilanIconGrid is the document view; MilanIconView is the controller around it. */
 #import "MilanContent.h"
 
-@interface MilanIconGrid : NSView
+@interface MilanIconGrid : NSView <NSDraggingSource>
 {
 @public
 	id <MilanContentDelegate> delegate;
@@ -10,7 +10,12 @@
 	NSString *path;
 	NSMutableIndexSet *sel;
 	NSInteger anchor, cols;
-	BOOL relaying;
+	BOOL relaying, rubber, dragging, pendingDrag;
+	NSPoint downPoint;
+	NSRect rubberRect;
+	NSMutableIndexSet *baseSel;
+	NSMutableString *typed;
+	NSTimeInterval typedAt;
 }
 - (void) setEntries: (NSArray *)e keepSelection: (BOOL)keep;
 - (NSArray *) selectedEntries;

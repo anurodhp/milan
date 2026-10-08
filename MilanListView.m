@@ -65,6 +65,8 @@
 	[table setDelegate: self];
 	[table setTarget: self];
 	[table setDoubleAction: @selector(openSelected:)];
+	[table registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+	[table setDraggingSourceOperationMask: NSDragOperationMove | NSDragOperationCopy forLocal: YES];
 	scroll = [[NSScrollView alloc] initWithFrame: NSMakeRect(0, 0, 600, 400)];
 	[scroll setHasVerticalScroller: YES];
 	[scroll setBorderType: NSNoBorder];
@@ -133,6 +135,35 @@
 }
 
 - (NSInteger) numberOfRowsInTableView: (NSTableView *)t { return [entries count]; }
+
+- (BOOL) tableView: (NSTableView *)t writeRowsWithIndexes: (NSIndexSet *)rows toPasteboard: (NSPasteboard *)pb
+{
+	NSMutableArray *paths = [NSMutableArray array];
+	[[entries objectsAtIndexes: rows] enumerateObjectsUsingBlock: ^(id e, NSUInteger i, BOOL *stop) { [paths addObject: ((MilanEntry *)e)->path]; }];
+	[pb declareTypes: [NSArray arrayWithObject: NSFilenamesPboardType] owner: nil];
+	[pb setPropertyList: paths forType: NSFilenamesPboardType];
+	return YES;
+}
+
+- (NSDragOperation) tableView: (NSTableView *)t validateDrop: (id <NSDraggingInfo>)info
+          proposedRow: (NSInteger)row proposedDropOperation: (NSTableViewDropOperation)op
+{
+	MilanEntry *e = row >= 0 && row < (NSInteger)[entries count] ? [entries objectAtIndex: row] : nil;
+	if (e && e->isDir && !e->isApp && op == NSTableViewDropOn) return NSDragOperationMove;
+	[t setDropRow: -1 dropOperation: NSTableViewDropOn];	/* the folder being browsed */
+	return NSDragOperationMove;
+}
+
+- (BOOL) tableView: (NSTableView *)t acceptDrop: (id <NSDraggingInfo>)info row: (NSInteger)row
+     dropOperation: (NSTableViewDropOperation)op
+{
+	NSArray *paths = [[info draggingPasteboard] propertyListForType: NSFilenamesPboardType];
+	MilanEntry *e = row >= 0 && row < (NSInteger)[entries count] ? [entries objectAtIndex: row] : nil;
+	if (![paths count]) return NO;
+	[delegate contentDropPaths: paths onto: (e && e->isDir && !e->isApp) ? e->path : nil
+	                      copy: ([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask) != 0];
+	return YES;
+}
 
 - (id) tableView: (NSTableView *)t objectValueForTableColumn: (NSTableColumn *)c row: (NSInteger)r
 {

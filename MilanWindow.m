@@ -225,6 +225,14 @@ setEnabledIcon(NSButton *b, BOOL on)
 	          completion: ^(NSArray *e, NSString *err) { done(e); }];
 }
 
+- (void) contentDropPaths: (NSArray *)paths onto: (NSString *)folder copy: (BOOL)copy
+{
+	NSString *dest = folder ? folder : [self currentPath];
+	MilanOpDone done = ^(NSString *e) { [self report: e]; [self load: NO]; };
+	if (copy) [MilanFileOps copyPaths: paths toDir: dest done: done];
+	else [MilanFileOps movePaths: paths toDir: dest done: done];
+}
+
 - (void) contentSortBy: (MilanSort)key
 {
 	if (key == sortKey) ascending = !ascending; else { sortKey = key; ascending = YES; }
@@ -502,6 +510,10 @@ exists(NSString *p)
 	    ^{ [cur selectPath: [root stringByAppendingPathComponent: @"z.txt"]]; check([[cur selectedEntries] count] == 1, @"select z.txt after rename (live refresh)"); [self getInfo: nil]; [self trashSelection: nil]; },
 	    ^{ check(exists(trashed) && !exists([root stringByAppendingPathComponent: @"z.txt"]), @"trash moves z.txt to ~/.Trash"); [MilanFileOps newFolderIn: root done: ^(NSString *m, NSString *e) { check(m != nil, @"new folder"); }]; },
 	    ^{ [self switchToMode: 0]; [cur selectAll]; check([[cur selectedEntries] count] >= 3, @"icons: select all"); },
+	    ^{ [self switchToMode: 1]; [self goTo: root]; },
+	    ^{ [self contentDropPaths: [NSArray arrayWithObject: [root stringByAppendingPathComponent: @"a copy.txt"]] onto: [root stringByAppendingPathComponent: @"sub"] copy: NO]; },
+	    ^{ check(exists([root stringByAppendingPathComponent: @"sub/a copy.txt"]) && !exists([root stringByAppendingPathComponent: @"a copy.txt"]), @"drop moves 'a copy.txt' onto folder sub"); [self contentDropPaths: [NSArray arrayWithObject: [root stringByAppendingPathComponent: @"sub/a copy.txt"]] onto: nil copy: YES]; },
+	    ^{ check(exists([root stringByAppendingPathComponent: @"a copy.txt"]) && exists([root stringByAppendingPathComponent: @"sub/a copy.txt"]), @"drop with copy onto browsed folder"); },
 	    ^{ NSLog(@"SELFTEST done"); },
 	    nil];
 	for (i = 0; i < [steps count]; i++) {

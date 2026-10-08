@@ -13,12 +13,13 @@
 	self = [super initWithFrame: f];
 	sel = [[NSMutableIndexSet alloc] init];
 	anchor = -1;
+	[self registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
 	return self;
 }
 
 - (void) dealloc
 {
-	[entries release]; [path release]; [sel release];
+	[entries release]; [path release]; [sel release]; [typed release];
 	[super dealloc];
 }
 
@@ -150,6 +151,12 @@
 		     fraction: e->isHidden ? 0.5 : 1.0 respectFlipped: YES hints: nil];
 		[e->name drawInRect: tr withAttributes: s ? selAttrs : attrs];
 	}
+	if (rubber) {
+		[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.2] set];
+		NSRectFillUsingOperation(rubberRect, NSCompositeSourceOver);
+		[[NSColor selectedMenuItemColor] set];
+		NSFrameRect(rubberRect);
+	}
 }
 
 - (void) mouseDown: (NSEvent *)ev
@@ -158,8 +165,13 @@
 	NSInteger i = [self indexAtPoint: p];
 	NSUInteger m = [ev modifierFlags];
 	[[self window] makeFirstResponder: self];
+	downPoint = p;
+	dragging = rubber = NO;
+	pendingDrag = NO;
 	if (i < 0) {
 		if (!(m & (NSShiftKeyMask | NSCommandKeyMask))) [sel removeAllIndexes];
+		rubber = YES;
+		baseSel = [sel mutableCopy];
 	} else if (m & NSCommandKeyMask) {
 		if ([sel containsIndex: i]) [sel removeIndex: i]; else [sel addIndex: i];
 		anchor = i;
@@ -169,11 +181,85 @@
 	} else {
 		if (![sel containsIndex: i]) { [sel removeAllIndexes]; [sel addIndex: i]; }
 		anchor = i;
+		pendingDrag = YES;
 	}
 	[self setNeedsDisplay: YES];
 	[delegate contentSelectionChanged];
-	if (i >= 0 && [ev clickCount] == 2)
+	if (i >= 0 && [ev clickCount] == 2) {
+		pendingDrag = NO;
 		[delegate contentOpen: [self selectedEntries]];
+	}
+}
+
+- (NSRect) rubberRect: (NSPoint)p
+{
+	return NSMakeRect(MIN(downPoint.x, p.x), MIN(downPoint.y, p.y), fabs(p.x - downPoint.x), fabs(p.y - downPoint.y));
+}
+
+- (void) mouseDragged: (NSEvent *)ev
+{
+	NSPoint p = [self convertPoint: [ev locationInWindow] fromView: nil];
+	if (rubber) {
+		NSInteger i, n = [entries count];
+		NSRect r;
+		[self autoscroll: ev];
+		rubberRect = [self rubberRect: p];
+		r = rubberRect;
+		[sel removeAllIndexes];
+		[sel addIndexes: baseSel];
+		for (i = 0; i < n; i++)
+			if (NSIntersectsRect(r, [self cellRect: i])) [sel addIndex: i];
+		[self setNeedsDisplay: YES];
+		[delegate contentSelectionChanged];
+	} else if (pendingDrag && !dragging && (fabs(p.x - downPoint.x) > 4 || fabs(p.y - downPoint.y) > 4)) {
+		NSMutableArray *paths = [NSMutableArray array];
+		NSPasteboard *pb = [NSPasteboard pasteboardWithName: NSDragPboard];
+		MilanEntry *e;
+		NSImage *icon;
+		dragging = YES;
+		for (e in [self selectedEntries]) [paths addObject: e->path];
+		[pb declareTypes: [NSArray arrayWithObject: NSFilenamesPboardType] owner: self];
+		[pb setPropertyList: paths forType: NSFilenamesPboardType];
+		icon = [MilanIcons iconForEntry: [[self selectedEntries] objectAtIndex: 0]];
+		[self dragImage: icon at: NSMakePoint(p.x - 24, p.y + 24) offset: NSZeroSize event: ev
+		     pasteboard: pb source: self slideBack: YES];
+	}
+}
+
+- (void) mouseUp: (NSEvent *)ev
+{
+	if (rubber) { rubber = NO; [baseSel release]; baseSel = nil; [self setNeedsDisplay: YES]; }
+	dragging = pendingDrag = NO;
+}
+
+- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL)local
+{
+	return NSDragOperationMove | NSDragOperationCopy;
+}
+
+/* drop target: a folder cell, else the folder being browsed */
+- (NSString *) dropTargetAt: (id <NSDraggingInfo>)info
+{
+	NSInteger i = [self indexAtPoint: [self convertPoint: [info draggingLocation] fromView: nil]];
+	MilanEntry *e = i >= 0 ? [entries objectAtIndex: i] : nil;
+	return e && e->isDir && !e->isApp ? e->path : nil;
+}
+
+- (NSDragOperation) draggingEntered: (id <NSDraggingInfo>)info { return [self draggingUpdated: info]; }
+
+- (NSDragOperation) draggingUpdated: (id <NSDraggingInfo>)info
+{
+	return ([info draggingSourceOperationMask] & NSDragOperationCopy) && ([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
+	    ? NSDragOperationCopy : NSDragOperationMove;
+}
+
+- (BOOL) performDragOperation: (id <NSDraggingInfo>)info
+{
+	NSArray *paths = [[info draggingPasteboard] propertyListForType: NSFilenamesPboardType];
+	BOOL copy = ([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask) != 0;
+	if (![paths count]) return NO;
+	[delegate contentDropPaths: paths onto: [self dropTargetAt: info] copy: copy];
+	return YES;
 }
 
 - (NSMenu *) menuForEvent: (NSEvent *)ev
@@ -184,6 +270,23 @@
 	[self setNeedsDisplay: YES];
 	[delegate contentSelectionChanged];
 	return [delegate contentMenu];
+}
+
+- (void) typeSelect: (NSString *)ch
+{
+	NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+	NSUInteger i;
+	if (!typed || now - typedAt > 1.0) { [typed release]; typed = [ch mutableCopy]; }
+	else [typed appendString: ch];
+	typedAt = now;
+	for (i = 0; i < [entries count]; i++)
+		if ([((MilanEntry *)[entries objectAtIndex: i])->name rangeOfString: typed options: NSCaseInsensitiveSearch | NSAnchoredSearch].location != NSNotFound) {
+			[sel removeAllIndexes]; [sel addIndex: i]; anchor = i;
+			[self scrollRectToVisible: [self cellRect: i]];
+			[self setNeedsDisplay: YES];
+			[delegate contentSelectionChanged];
+			return;
+		}
 }
 
 - (void) moveSelection: (NSInteger)delta extend: (BOOL)ext
@@ -212,7 +315,9 @@
 	case NSUpArrowFunctionKey: [self moveSelection: -cols extend: shift]; break;
 	case NSDownArrowFunctionKey: [self moveSelection: cols extend: shift]; break;
 	case '\r': if ([sel count]) [delegate contentOpen: [self selectedEntries]]; break;
-	default: [super keyDown: ev];
+	default:
+		if (c >= 0x20 && c < 0xf700 && !([ev modifierFlags] & NSCommandKeyMask)) [self typeSelect: k];
+		else [super keyDown: ev];
 	}
 }
 

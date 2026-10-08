@@ -8,6 +8,8 @@
 - (NSMenu *) contentMenu;
 - (void) contentLoadPath: (NSString *)path completion: (void (^)(NSArray *entries))done;
 - (void) contentSortBy: (MilanSort)key;	/* list header click */
+/* Files dropped from a drag: onto a folder path, or (nil) the directory being browsed. */
+- (void) contentDropPaths: (NSArray *)paths onto: (NSString *)folder copy: (BOOL)copy;
 @end
 
 @protocol MilanContent
