@@ -330,7 +330,7 @@ FWD(putBack) FWD(emptyTrash) FWD(deleteImmediately) FWD(goTrash) FWD(trashSelect
 		if ([d boolForKey: @"MilanMultiTest"]) [self runMultiTest];
 		if ([d boolForKey: @"MilanSelfTest"]) [[self active] runSelfTest];
 		if ([d boolForKey: @"MilanTestWindow"])
-			[self performSelector: @selector(openWindowAtPath:) withObject: @"/etc" afterDelay: 2.0];
+			[self performSelector: @selector(openWindowAtPath:) withObject: ([d stringForKey: @"MilanTestWindowPath"] ? [d stringForKey: @"MilanTestWindowPath"] : @"/etc") afterDelay: 2.0];
 		if ((info = [d stringForKey: @"MilanInfo"]))
 			for (NSString *f in [info componentsSeparatedByString: @":"])
 				[MilanInfoPanel performSelector: @selector(showForPath:) withObject: f afterDelay: 2.0];

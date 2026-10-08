@@ -7,19 +7,12 @@
   browser windows and the menu bar are visible above the desktop. If not, the desktop window's stacking or its 32-bit visual is the suspect.
 
 ## Device testing (Pi)
-- In-window dialogs (`MilanDialog`): all verified with real input: Empty Trash (Cancel/Esc/Return/click), Rename (name without extension pre-selected),
-  Delete Immediately in the Trash view. Only send xinject keystrokes after clicking Milan's title bar, or they land in whichever app has focus.
-- Done with real input via xinject: sidebar click, rubber band, menu-bar menus, context menu and Get Info, desktop menu,
-  Change Background panel (live wallpaper change, persisted), double-click a desktop folder, drag a file onto the Trash.
-- Rubber-band, type-to-select and drag-and-drop with a real mouse/keyboard (only the drop handler is self-tested).
-- App launch by double-click (`launchApplication:`).
-- Sort indicator arrows in list headers (code in place, not visually checked).
-- Trash sidebar icon (Eau RecyclerEmpty/Full), Put Back and Empty Trash with real clicks.
-- Right-click context menu with real mouse events.
-- Rename sheet (modal panel).
-- List-view column-header sorting.
-- Two or more info panels open at once.
-- A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
+Verified with real input (xinject): sidebar clicks, rubber band, menu-bar menus, context menus (icons, list, desktop, Trash),
+Get Info, Open With and double-click launching (documents and apps), Quick Look, list-header sorting, all in-window dialogs
+(Empty Trash, Rename, Delete Immediately), drag to the Trash, drag between two windows, drag icons on the desktop, desktop
+Preferences toggle, wallpaper chooser. Not yet exercised with real input:
+- Type-to-select; Put Back and Empty Trash through the Trash window's context menu; two info panels open together;
+  the sort indicator arrows' look; drag and drop inside the columns view.
 
 ## Features
 - Unicode: validated on the Pi (`/tmp/uni`: accents, Greek, Cyrillic, Hebrew, Arabic, CJK, Korean, emoji, ZWJ, combining).
@@ -50,7 +43,6 @@
 
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
-- Real mouse-drag test of drag and drop (all three views have it now).
 - Sidebar: user-editable favorites.
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.
 - Desktop (see `docs/desktop-plan.md`): wallpaper, icons, Trash and volumes, right-click menu and the Change Background
