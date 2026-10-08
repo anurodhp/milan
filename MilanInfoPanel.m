@@ -136,7 +136,7 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 			total = tree_size([path fileSystemRepresentation], &cancelled, &items);
 			if (!cancelled) {
 				s = [[NSString stringWithFormat: @"%@ (%llu bytes), %llu items", MilanFormatSize(total), total, items] retain];
-				dispatch_async(dispatch_get_main_queue(), ^{
+				MilanRunOnMain(^{
 					if (!cancelled) [sizeField setStringValue: s];
 					[s release];
 				});

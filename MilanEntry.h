@@ -29,6 +29,10 @@ typedef enum { MilanSortName, MilanSortSize, MilanSortDate, MilanSortKind } Mila
 + (MilanEntry *) entryForPath: (NSString *)path;
 @end
 
+/* Runs a block on the main thread. Use this, not dispatch_async(main queue), from background work:
+ * GNUstep's run loop is not woken reliably by main-queue blocks, so completions arrive late. */
+void MilanRunOnMain(void (^block)(void));
+
 NSString *MilanFormatSize(unsigned long long bytes);
 NSString *MilanFormatDate(time_t t);
 NSString *MilanFormatMode(mode_t mode);

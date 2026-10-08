@@ -6,6 +6,7 @@
 #import "MilanInfoPanel.h"
 #import "MilanIcons.h"
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <dispatch/dispatch.h>
 
@@ -243,15 +244,16 @@ setEnabledIcon(NSButton *b, BOOL on)
 	[self stopWatching];
 	fd = open([path fileSystemRepresentation], O_EVTONLY);
 	if (fd < 0) return;
+	/* the source lives on a global queue and hops to the main thread: main-queue sources do not wake
+	 * GNUstep's run loop */
 	src = dispatch_source_create(DISPATCH_SOURCE_TYPE_VNODE, fd,
 	    DISPATCH_VNODE_WRITE | DISPATCH_VNODE_DELETE | DISPATCH_VNODE_RENAME | DISPATCH_VNODE_EXTEND,
-	    dispatch_get_main_queue());
+	    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 	dispatch_source_set_event_handler(src, ^{
-		if (reloadPending) return;
-		reloadPending = YES;
-		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 150 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
-			reloadPending = NO;
-			[self load: NO];
+		MilanRunOnMain(^{
+			if (reloadPending) return;
+			reloadPending = YES;
+			[self runLater: ^{ reloadPending = NO; [self load: NO]; } after: 0.15];
 		});
 	});
 	dispatch_source_set_cancel_handler(src, ^{ close(fd); });
@@ -454,6 +456,59 @@ setEnabledIcon(NSButton *b, BOOL on)
 
 - (void) modalButton: (id)b { [NSApp stopModalWithCode: [b tag]]; }
 - (void) selectAllItems: (id)s { [cur selectAll]; }
+
+/* ---- self test (-MilanSelfTest YES): drives the real actions on a scratch tree and logs PASS/FAIL ---- */
+
+static void
+check(BOOL ok, NSString *what)
+{
+	NSLog(@"SELFTEST %@: %@", ok ? @"PASS" : @"FAIL", what);
+}
+
+static BOOL
+exists(NSString *p)
+{
+	struct stat st;
+	return lstat([p fileSystemRepresentation], &st) == 0;
+}
+
+- (void) runLater: (void (^)(void))b after: (NSTimeInterval)t
+{
+	[self performSelector: @selector(runBlock:) withObject: [[b copy] autorelease] afterDelay: t];
+}
+
+- (void) runBlock: (void (^)(void))b { b(); }
+
+- (void) runSelfTest
+{
+	NSFileManager *fm = [NSFileManager defaultManager];
+	NSString *root = @"/tmp/milan-test", *trashed = [NSHomeDirectory() stringByAppendingPathComponent: @".Trash/z.txt"];
+	NSArray *steps;
+	NSUInteger i;
+	[fm removeItemAtPath: root error: NULL];
+	[fm removeItemAtPath: trashed error: NULL];
+	[fm createDirectoryAtPath: [root stringByAppendingPathComponent: @"sub"] withIntermediateDirectories: YES attributes: nil error: NULL];
+	[@"hello" writeToFile: [root stringByAppendingPathComponent: @"a.txt"] atomically: YES encoding: NSUTF8StringEncoding error: NULL];
+	[@"int x;" writeToFile: [root stringByAppendingPathComponent: @"b.c"] atomically: YES encoding: NSUTF8StringEncoding error: NULL];
+	[self goTo: root];
+	steps = [NSArray arrayWithObjects:
+	    ^{ [self switchToMode: 2]; [cur selectPath: [root stringByAppendingPathComponent: @"sub"]]; },
+	    ^{ check([[cur browsedPath] isEqualToString: [root stringByAppendingPathComponent: @"sub"]], @"columns: selecting a folder opens it"); [self switchToMode: 1]; [self goTo: root]; },
+	    ^{ [cur selectPath: [root stringByAppendingPathComponent: @"a.txt"]]; check([[cur selectedEntries] count] == 1, @"list: select a.txt"); [self copyFiles: nil]; [self pasteFiles: nil]; },
+	    ^{ check(exists([root stringByAppendingPathComponent: @"a copy.txt"]), @"copy+paste makes 'a copy.txt'"); [cur selectPath: [root stringByAppendingPathComponent: @"b.c"]]; [self cutFiles: nil]; [self goTo: [root stringByAppendingPathComponent: @"sub"]]; },
+	    ^{ [self pasteFiles: nil]; },
+	    ^{ check(exists([root stringByAppendingPathComponent: @"sub/b.c"]) && !exists([root stringByAppendingPathComponent: @"b.c"]), @"cut+paste moves b.c into sub"); [self goTo: root]; },
+	    ^{ [MilanFileOps renamePath: [root stringByAppendingPathComponent: @"a.txt"] to: @"z.txt" done: ^(NSString *e) { check(!e && exists([root stringByAppendingPathComponent: @"z.txt"]), @"rename a.txt -> z.txt"); }]; },
+	    ^{ [cur selectPath: [root stringByAppendingPathComponent: @"z.txt"]]; check([[cur selectedEntries] count] == 1, @"select z.txt after rename (live refresh)"); [self getInfo: nil]; [self trashSelection: nil]; },
+	    ^{ check(exists(trashed) && !exists([root stringByAppendingPathComponent: @"z.txt"]), @"trash moves z.txt to ~/.Trash"); [MilanFileOps newFolderIn: root done: ^(NSString *m, NSString *e) { check(m != nil, @"new folder"); }]; },
+	    ^{ [self switchToMode: 0]; [cur selectAll]; check([[cur selectedEntries] count] >= 3, @"icons: select all"); },
+	    ^{ NSLog(@"SELFTEST done"); },
+	    nil];
+	for (i = 0; i < [steps count]; i++) {
+		void (^b)(void) = [steps objectAtIndex: i];
+		[self runLater: b after: (i + 1) * 4.0];
+	}
+}
 
 /* ---- window ---- */
 

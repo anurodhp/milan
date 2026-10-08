@@ -41,6 +41,30 @@ MilanFormatMode(mode_t m)
 	return [NSString stringWithFormat: @"%s (%03o)", s, (unsigned)(m & 0777)];
 }
 
+@interface MilanBlockBox : NSObject
+{
+	void (^blk)(void);
+}
+- (id) initWithBlock: (void (^)(void))b;
+- (void) fire;
+@end
+
+@implementation MilanBlockBox
+- (id) initWithBlock: (void (^)(void))b { self = [super init]; blk = [b copy]; return self; }
+- (void) fire { blk(); }
+- (void) dealloc { [blk release]; [super dealloc]; }
+@end
+
+void
+MilanRunOnMain(void (^block)(void))
+{
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	MilanBlockBox *b = [[MilanBlockBox alloc] initWithBlock: block];
+	[b performSelectorOnMainThread: @selector(fire) withObject: nil waitUntilDone: NO];
+	[b release];
+	[pool release];
+}
+
 @implementation MilanEntry
 
 - (void) dealloc
@@ -168,7 +192,7 @@ make_entry(const char *dir, const char *cname, NSString *dirPath)
 		}
 		[out retain]; [err retain];
 		[pool release];
-		dispatch_async(dispatch_get_main_queue(), ^{
+		MilanRunOnMain(^{
 			cb(out, err);
 			[out release]; [err release]; [p release]; [cb release];
 		});

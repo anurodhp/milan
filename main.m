@@ -163,6 +163,7 @@ FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
 		NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 		NSString *info;
 		if ([d objectForKey: @"MilanViewMode"]) [[self active] setMode: (int)[d integerForKey: @"MilanViewMode"]];
+		if ([d boolForKey: @"MilanSelfTest"]) [[self active] runSelfTest];
 		if ([d boolForKey: @"MilanTestWindow"])
 			[self performSelector: @selector(openWindowAtPath:) withObject: @"/etc" afterDelay: 2.0];
 		if ((info = [d stringForKey: @"MilanInfo"]))

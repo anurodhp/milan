@@ -1,4 +1,5 @@
 #import "MilanFileOps.h"
+#import "MilanEntry.h"
 #include <dispatch/dispatch.h>
 
 static dispatch_queue_t
@@ -38,7 +39,7 @@ run(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
 		w([NSFileManager defaultManager], &err);
 		[err retain];
 		[pool release];
-		dispatch_async(dispatch_get_main_queue(), ^{
+		MilanRunOnMain(^{
 			if (d) d(err);
 			[err release]; [w release]; [d release];
 		});

@@ -29,6 +29,7 @@
 - (NSWindow *) window;
 - (NSString *) currentPath;
 - (void) goTo: (NSString *)p;
+- (void) runSelfTest;
 - (void) goBack: (id)s;
 - (void) goForward: (id)s;
 - (void) goUp: (id)s;
