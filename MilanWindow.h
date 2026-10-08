@@ -29,6 +29,7 @@
 	NSScrollView *sidebar;
 	id sidebarTable;	/* a MilanTable */
 	NSArray *favorites;
+	id sidebarMenu;
 	BOOL syncingSidebar;
 }
 - (id) initWithPath: (NSString *)p;
@@ -39,6 +40,10 @@
 - (NSWindow *) window;
 - (NSString *) currentPath;
 - (BOOL) isDesktop;
+- (BOOL) selectedRowIsUserFavorite;
+- (void) removeSelectedFavorite;
+- (void) addFavoritePaths: (NSArray *)paths;
+- (void) rebuildFavorites;
 - (void) goTo: (NSString *)p;
 - (void) runSelfTest;
 - (void) goBack: (id)s;

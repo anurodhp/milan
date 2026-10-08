@@ -43,7 +43,7 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
 
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
-- Sidebar: user-editable favorites.
+- Sidebar: favorites are editable (drag a folder below the rows to add, right-click > Remove from Sidebar); still to do: reorder by dragging, eject for volumes, a Volumes section.
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.
 - Desktop (see `docs/desktop-plan.md`): wallpaper, icons, Trash and volumes, right-click menu and the Change Background
   panel are built and driven with real input via `xinject`. Still to do:

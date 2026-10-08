@@ -32,6 +32,35 @@
 - (BOOL) canBecomeMainWindow { return NO; }
 @end
 
+/* the sidebar's right-click menu: "Remove from Sidebar" on a favorite the user added */
+@interface MilanSidebarMenu : NSObject
+{
+	MilanWindow *window;	/* not retained: it owns us */
+	NSMenu *menu;
+}
+- (id) initWithWindow: (MilanWindow *)w;
+- (NSMenu *) contentMenu;
+- (void) contentQuickLook;
+@end
+
+@implementation MilanSidebarMenu
+- (id) initWithWindow: (MilanWindow *)w
+{
+	NSMenuItem *it;
+	self = [super init];
+	window = w;
+	menu = [[NSMenu alloc] initWithTitle: @""];
+	it = (NSMenuItem *)[menu addItemWithTitle: @"Remove from Sidebar" action: @selector(removeFromSidebar:) keyEquivalent: @""];
+	[it setTarget: self];
+	return self;
+}
+- (void) dealloc { [menu release]; [super dealloc]; }
+- (NSMenu *) contentMenu { return [window selectedRowIsUserFavorite] ? menu : nil; }
+- (void) contentQuickLook {}
+- (void) removeFromSidebar: (id)s { [window removeSelectedFavorite]; }
+- (BOOL) validateMenuItem: (NSMenuItem *)i { return YES; }
+@end
+
 @implementation MilanWindow
 
 static NSButton *
@@ -142,17 +171,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 	/* favorites sidebar */
 	{
 		NSTableColumn *c;
-		NSMutableArray *fav = [NSMutableArray array];
-		NSString *h = NSHomeDirectory(), *d;
-		NSFileManager *fm = [NSFileManager defaultManager];
-		[fav addObject: [NSArray arrayWithObjects: @"Home", h, @"ft-folder", nil]];
-		for (d in [NSArray arrayWithObjects: @"Desktop", @"Documents", @"Downloads", nil])
-			if ([fm fileExistsAtPath: [h stringByAppendingPathComponent: d]])
-				[fav addObject: [NSArray arrayWithObjects: d, [h stringByAppendingPathComponent: d], @"ft-folder", nil]];
-		[fav addObject: [NSArray arrayWithObjects: @"Applications", @"/Applications", @"ft-app", nil]];
-		[fav addObject: [NSArray arrayWithObjects: @"Computer", @"/", @"ft-disk", nil]];
-		[fav addObject: [NSArray arrayWithObjects: @"Trash", MilanTrashPath, @"ft-trash", nil]];
-		favorites = [fav retain];
+		[self rebuildFavorites];
 		sidebarTable = [[MilanTable alloc] initWithFrame: NSMakeRect(0, 0, SIDEBAR_W, 200)];
 		c = [[[NSTableColumn alloc] initWithIdentifier: @"favicon"] autorelease];
 		[c setWidth: 22];
@@ -171,6 +190,9 @@ setEnabledIcon(NSButton *b, BOOL on)
 		[sidebarTable setIntercellSpacing: NSMakeSize(0, 0)];
 		[sidebarTable setDataSource: self];
 		[sidebarTable setDelegate: self];
+		[sidebarTable registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+		sidebarMenu = [[MilanSidebarMenu alloc] initWithWindow: self];
+		[sidebarTable setMenuDelegate: (id)sidebarMenu];
 		sidebar = [[[NSScrollView alloc] initWithFrame: NSMakeRect(0, STATUS_H, SIDEBAR_W, NSHeight([cv bounds]) - BAR_H - STATUS_H)] autorelease];
 		[sidebar setHasVerticalScroller: YES];
 		[sidebar setAutohidesScrollers: YES];
@@ -244,7 +266,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 {
 	int i;
 	[sidebarTable setDataSource: nil]; [sidebarTable setDelegate: nil];
-	[sidebarTable release]; [favorites release];
+	[sidebarTable release]; [favorites release]; [sidebarMenu release];
 	[self stopWatching];
 	for (i = 0; i < 3; i++) { [views[i] setDelegate: nil]; [(id)views[i] release]; }
 	[window setDelegate: nil];
@@ -305,6 +327,85 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (void) goTrash: (id)s { [self goTo: MilanTrashPath]; }
 
 /* ---- favorites sidebar ---- */
+
+static NSString *const kUserFavorites = @"MilanSidebarFavorites";
+
+/* built-in places, then the folders the user dragged onto the sidebar, then Computer and Trash */
+- (void) rebuildFavorites
+{
+	NSMutableArray *fav = [NSMutableArray array];
+	NSString *h = NSHomeDirectory(), *d, *p;
+	NSFileManager *fm = [NSFileManager defaultManager];
+	BOOL isDir;
+	[fav addObject: [NSArray arrayWithObjects: @"Home", h, @"ft-folder", nil]];
+	for (d in [NSArray arrayWithObjects: @"Desktop", @"Documents", @"Downloads", nil])
+		if ([fm fileExistsAtPath: [h stringByAppendingPathComponent: d]])
+			[fav addObject: [NSArray arrayWithObjects: d, [h stringByAppendingPathComponent: d], @"ft-folder", nil]];
+	[fav addObject: [NSArray arrayWithObjects: @"Applications", @"/Applications", @"ft-app", nil]];
+	for (p in [[NSUserDefaults standardUserDefaults] arrayForKey: kUserFavorites])
+		if ([fm fileExistsAtPath: p isDirectory: &isDir] && isDir)
+			[fav addObject: [NSArray arrayWithObjects: MilanNFC([p lastPathComponent]), p, @"ft-folder", @"user", nil]];
+	[fav addObject: [NSArray arrayWithObjects: @"Computer", @"/", @"ft-disk", nil]];
+	[fav addObject: [NSArray arrayWithObjects: @"Trash", MilanTrashPath, @"ft-trash", nil]];
+	[favorites release];
+	favorites = [fav retain];
+	[sidebarTable reloadData];
+	[self syncSidebar];
+}
+
+- (void) addFavoritePaths: (NSArray *)paths
+{
+	NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+	NSMutableArray *m = [[[d arrayForKey: kUserFavorites] mutableCopy] autorelease];
+	NSString *p;
+	BOOL isDir;
+	if (!m) m = [NSMutableArray array];
+	for (p in paths)
+		if ([[NSFileManager defaultManager] fileExistsAtPath: p isDirectory: &isDir] && isDir && ![m containsObject: p] && !MilanPathInTrash(p))
+			[m addObject: p];
+	[d setObject: m forKey: kUserFavorites];
+	[d synchronize];
+	[self rebuildFavorites];
+}
+
+- (void) removeSelectedFavorite
+{
+	NSInteger r = [sidebarTable selectedRow];
+	NSMutableArray *m = [[[[NSUserDefaults standardUserDefaults] arrayForKey: kUserFavorites] mutableCopy] autorelease];
+	if (r < 0 || r >= (NSInteger)[favorites count] || [[favorites objectAtIndex: r] count] < 4) return;
+	[m removeObject: [[favorites objectAtIndex: r] objectAtIndex: 1]];
+	[[NSUserDefaults standardUserDefaults] setObject: m forKey: kUserFavorites];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+	[self rebuildFavorites];
+}
+
+- (BOOL) selectedRowIsUserFavorite
+{
+	NSInteger r = [sidebarTable selectedRow];
+	return r >= 0 && r < (NSInteger)[favorites count] && [[favorites objectAtIndex: r] count] >= 4;
+}
+
+/* drop on a row: move into that folder (or trash); drop below the rows: add the folders as favorites */
+- (NSDragOperation) tableView: (NSTableView *)t validateDrop: (id <NSDraggingInfo>)info
+                  proposedRow: (NSInteger)row proposedDropOperation: (NSTableViewDropOperation)op
+{
+	if (op == NSTableViewDropOn && row >= 0 && row < (NSInteger)[favorites count]) return NSDragOperationMove;
+	[t setDropRow: (NSInteger)[favorites count] dropOperation: NSTableViewDropAbove];
+	return NSDragOperationCopy;
+}
+
+- (BOOL) tableView: (NSTableView *)t acceptDrop: (id <NSDraggingInfo>)info row: (NSInteger)row
+     dropOperation: (NSTableViewDropOperation)op
+{
+	NSArray *paths = [[info draggingPasteboard] propertyListForType: NSFilenamesPboardType];
+	if (![paths count]) return NO;
+	if (op == NSTableViewDropOn && row >= 0 && row < (NSInteger)[favorites count])
+		[self contentDropPaths: paths onto: [[favorites objectAtIndex: row] objectAtIndex: 1]
+		                  copy: ([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask) != 0];
+	else
+		[self addFavoritePaths: paths];
+	return YES;
+}
 
 - (NSInteger) numberOfRowsInTableView: (NSTableView *)t { return [favorites count]; }
 
