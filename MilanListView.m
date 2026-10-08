@@ -1,5 +1,6 @@
 #import "MilanListView.h"
 #import "MilanIcons.h"
+#import "MilanText.h"
 
 @implementation MilanTable
 
@@ -209,7 +210,8 @@
 	MilanEntry *e = [entries objectAtIndex: r];
 	NSString *i = [c identifier];
 	if ([i isEqualToString: @"icon"]) return [MilanIcons iconForEntry: e];
-	if ([i isEqualToString: @"name"]) return [e displayName];
+	if ([i isEqualToString: @"name"]) return MilanDisplayString([e displayName], [NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 12], NSFontAttributeName,
+	    [t isRowSelected: r] ? [NSColor whiteColor] : [NSColor controlTextColor], NSForegroundColorAttributeName, nil]);
 	if ([i isEqualToString: @"date"]) return [e dateString];
 	if ([i isEqualToString: @"size"]) return [e sizeString];
 	return [e kind];

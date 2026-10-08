@@ -15,15 +15,13 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
   the sort indicator arrows' look; drag and drop inside the columns view.
 
 ## Features
-- Unicode: validated on the Pi (`/tmp/uni`: accents, Greek, Cyrillic, Hebrew, Arabic, CJK, Korean, emoji, ZWJ, combining).
-  The UI font is Inter (`NSFont = "Inter-Regular"` in `GlobalDefaults.plist`; 6 faces from `build_fonts.sh`), a modern font that
-  covers Latin, Greek and Cyrillic. Accents drew detached only because names come back decomposed (NFD) and GNUstep does no
-  shaping; fixed by showing names precomposed (`MilanNFC.m`, now also in the libs-base fork as NSString canonical mapping).
-  Still `?`: **Hebrew, Arabic, CJK, Korean, emoji**, because Inter has none of them and GNUstep text drawing has no per-character
-  font fallback. DejaVu Sans (already on the image) covers Hebrew and Arabic, so a fallback in Milan's drawing would fix Hebrew
-  without new fonts (also needs right-to-left ordering); Arabic additionally needs contextual shaping (HarfBuzz); CJK/Korean/emoji
-  need new fonts (OFL: Noto Sans CJK subset, Noto Emoji monochrome, or GNU Unifont as a last resort). Also unchecked: emoji ZWJ
-  sequences, rename/new-folder with non-ASCII, sorting order across scripts.
+- Unicode (validated on the Pi with `/tmp/uni`): the UI font is Inter (covers Latin, Greek, Cyrillic). Names are shown NFC
+  (accents compose; `MilanNFC.m` and the libs-base fork). Hebrew and Arabic fall back to DejaVu Sans per run (`MilanText.m`),
+  Hebrew is reversed into visual order and reads correctly; Arabic has no contextual shaping so it shows as isolated letters
+  (needs HarfBuzz). **Still `?`: CJK, Korean, emoji**: no font on the image has them, and GNUstep draws "?" for a missing glyph.
+  Needs a font decision (OFL: Noto Sans CJK subset, Noto Emoji monochrome, or GNU Unifont as a last resort). The fallback is used in
+  the icon, list and column views; window titles, the info panel and Quick Look titles still use the plain string. Also unchecked:
+  ZWJ emoji sequences, a full bidi algorithm for mixed LTR/RTL names, sorting order across scripts.
 
 - JPEG: Milan decodes .jpg/.jpeg itself (`MilanImage.m`, libjpeg-turbo, big files at 1/2-1/8 size), so Quick Look, wallpapers and
   Set as Desktop Picture accept them with the system gnustep-gui as it is. `libjpeg.62.dylib` must be in `/usr/X11/lib` on the

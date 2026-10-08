@@ -591,6 +591,7 @@ static NSString *const kUserFavorites = @"MilanSidebarFavorites";
 	if (desktop) return;	/* the desktop is always the icon view */
 	mode = m;
 	[modeSeg setSelectedSegment: m];
+	[modeSeg setNeedsDisplay: YES];
 	for (v in [[[host subviews] copy] autorelease]) [v removeFromSuperview];
 	cur = views[m];
 	[[cur view] setFrame: [host bounds]];

@@ -1,5 +1,6 @@
 #import "MilanIconView.h"
 #import "MilanIcons.h"
+#import "MilanText.h"
 
 #define CELL_W 100.0
 #define CELL_H 88.0
@@ -230,10 +231,10 @@ cellKey(NSInteger c, NSInteger r) { return [NSNumber numberWithInteger: c * 1000
 				shadow = [[NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 11], NSFontAttributeName,
 				    ps, NSParagraphStyleAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, nil] retain];
 			}
-			[[e displayName] drawInRect: NSOffsetRect(tr, 1, 1) withAttributes: shadow];
-			[[e displayName] drawInRect: tr withAttributes: white];
+			[MilanDisplayString([e displayName], shadow) drawInRect: NSOffsetRect(tr, 1, 1)];
+			[MilanDisplayString([e displayName], white) drawInRect: tr];
 		} else
-			[[e displayName] drawInRect: tr withAttributes: s ? selAttrs : attrs];
+			[MilanDisplayString([e displayName], s ? selAttrs : attrs) drawInRect: tr];
 	}
 	if (rubber) {
 		[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.2] set];
