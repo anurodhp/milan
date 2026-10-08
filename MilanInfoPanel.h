@@ -5,7 +5,7 @@
 @interface MilanInfoPanel : NSObject <NSWindowDelegate>
 {
 	NSPanel *panel;
-	NSTextField *sizeField;
+	NSTextField *sizeField, *openWithField;
 	MilanEntry *entry;
 	volatile BOOL cancelled;
 }

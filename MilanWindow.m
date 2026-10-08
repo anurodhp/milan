@@ -6,6 +6,7 @@
 #import "MilanInfoPanel.h"
 #import "MilanIcons.h"
 #import "MilanTrash.h"
+#import "MilanLauncher.h"
 #import "MilanListView.h"
 #import "MilanWallpaper.h"
 #include <fcntl.h>
@@ -498,7 +499,6 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (void) contentOpen: (NSArray *)sel
 {
 	MilanEntry *e;
-	NSWorkspace *ws = [NSWorkspace sharedWorkspace];
 	if (![self openAllowedFor: sel]) {
 		NSBeep();
 		[status setStringValue: @"Items in the Trash can't be opened. Put Back first."];
@@ -514,9 +514,13 @@ setEnabledIcon(NSButton *b, BOOL on)
 	}
 	for (e in sel) {
 		if (MilanPathInTrash(e->path)) continue;	/* belt and braces: never launch or open from a Trash */
-		if (e->isApp) [ws launchApplication: e->path];
-		else if (e->isDir) { [[NSApp delegate] performSelector: @selector(openWindowAtPath:) withObject: e->path]; }
-		else [ws openFile: e->path];
+		NSString *err = nil;
+		if (e->isDir && !e->isApp) { [[NSApp delegate] performSelector: @selector(openWindowAtPath:) withObject: e->path]; continue; }
+		if (![e->isApp ? (id)[NSNumber numberWithBool: [MilanLauncher launchApplication: e->path openFile: nil error: &err]]
+		               : (id)[NSNumber numberWithBool: [MilanLauncher openFile: e->path error: &err]] boolValue]) {
+			NSBeep();
+			[status setStringValue: err ? err : @"Could not open it."];
+		}
 	}
 }
 
@@ -570,7 +574,44 @@ setEnabledIcon(NSButton *b, BOOL on)
 		}
 		return blankMenu;
 	}
+	[self updateOpenWithItems];
 	return ctxMenu;
+}
+
+/* "Open With <app>" for a single selected document: every installed app that declares its extension */
+- (void) updateOpenWithItems
+{
+	NSInteger i;
+	NSArray *sel = [cur selectedEntries];
+	for (i = [ctxMenu numberOfItems] - 1; i >= 0; i--)
+		if ([[ctxMenu itemAtIndex: i] tag] == 900) [ctxMenu removeItemAtIndex: i];
+	if ([sel count] == 1) {
+		MilanEntry *e = [sel objectAtIndex: 0];
+		if (!e->isDir && !MilanPathInTrash(e->path)) {
+			NSString *app;
+			NSInteger at = 1;		/* right after "Open" */
+			for (app in [MilanLauncher applicationsForFile: e->path]) {
+				NSMenuItem *it = (NSMenuItem *)[ctxMenu insertItemWithTitle:
+				    [@"Open With " stringByAppendingString: [MilanLauncher displayNameForApplication: app]]
+				    action: @selector(openWith:) keyEquivalent: @"" atIndex: at++];
+				[it setTag: 900];
+				[it setTarget: self];
+				[it setRepresentedObject: app];
+				if (at > 6) break;
+			}
+		}
+	}
+}
+
+- (void) openWith: (NSMenuItem *)item
+{
+	NSString *err = nil;
+	MilanEntry *e = [[cur selectedEntries] count] == 1 ? [[cur selectedEntries] objectAtIndex: 0] : nil;
+	if (e && ![self openAllowedFor: [NSArray arrayWithObject: e]]) { NSBeep(); return; }
+	if (e && ![MilanLauncher launchApplication: [item representedObject] openFile: e->path error: &err]) {
+		NSBeep();
+		[status setStringValue: err ? err : @"Could not open it."];
+	}
 }
 
 - (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
@@ -594,7 +635,7 @@ isPicture(MilanEntry *e)
 {
 	SEL a = [item action];
 	BOOL has = [[cur selectedEntries] count] > 0, inTrash = MilanPathInTrash([self currentPath]);
-	if (a == @selector(changeBackground:)) return YES;
+	if (a == @selector(changeBackground:) || a == @selector(openWith:)) return YES;
 	if (a == @selector(setDesktopPicture:)) return [[cur selectedEntries] count] == 1 && isPicture([[cur selectedEntries] objectAtIndex: 0]);
 	if (a == @selector(putBack:)) return inTrash && has;
 	if (a == @selector(emptyTrash:)) return YES;

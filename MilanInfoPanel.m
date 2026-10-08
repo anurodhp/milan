@@ -1,5 +1,6 @@
 #import "MilanInfoPanel.h"
 #import "MilanIcons.h"
+#import "MilanLauncher.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <pwd.h>
@@ -90,6 +91,10 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	                  [NSString stringWithFormat: @"%@ (%llu bytes)", MilanFormatSize(e->size), e->size], nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Where:", [e->path stringByDeletingLastPathComponent], nil]];
 	if (link) [rows addObject: [NSArray arrayWithObjects: @"Links to:", link, nil]];
+	if (!e->isDir) {
+		NSString *app = [MilanLauncher defaultApplicationForFile: e->path];
+		[rows addObject: [NSArray arrayWithObjects: @"Opens with:", app ? [MilanLauncher displayNameForApplication: app] : @"\u2014 (no application)", nil]];
+	}
 	[rows addObject: [NSArray arrayWithObjects: @"Modified:", MilanFormatDate(e->mtime), nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Changed:", MilanFormatDate(e->ctime_), nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Permissions:", MilanFormatMode(e->mode), nil]];
@@ -129,6 +134,17 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 			val = label([r objectAtIndex: 1], NSMakeRect(104, y, W - 116, 16), NO, NSLeftTextAlignment);
 			[v addSubview: val];
 			if (i == 1) sizeField = val;
+			if ([[r objectAtIndex: 0] isEqualToString: @"Opens with:"]) {
+				NSButton *b = [[[NSButton alloc] initWithFrame: NSMakeRect(W - 76, y - 3, 64, 20)] autorelease];
+				openWithField = val;
+				[val setFrame: NSMakeRect(104, y, W - 190, 16)];
+				[b setTitle: @"Change"];
+				[b setBezelStyle: NSRoundedBezelStyle];
+				[[b cell] setFont: [NSFont systemFontOfSize: 10]];
+				[b setTarget: self];
+				[b setAction: @selector(cycleApplication:)];
+				[v addSubview: b];
+			}
 		}
 	}
 	[panel makeKeyAndOrderFront: nil];
@@ -153,6 +169,19 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 		});
 	}
 	return self;
+}
+
+/* each click makes the next installed handler for this extension the default */
+- (void) cycleApplication: (id)sender
+{
+	NSArray *apps = [MilanLauncher applicationsForFile: entry->path];
+	NSString *cur = [MilanLauncher defaultApplicationForFile: entry->path], *next;
+	NSUInteger i;
+	if ([apps count] < 2) { NSBeep(); return; }
+	i = [apps indexOfObject: cur];
+	next = [apps objectAtIndex: (i == NSNotFound ? 0 : (i + 1) % [apps count])];
+	[MilanLauncher setDefaultApplication: next forExtension: [entry->path pathExtension]];
+	[openWithField setStringValue: [MilanLauncher displayNameForApplication: next]];
 }
 
 - (void) windowWillClose: (NSNotification *)n

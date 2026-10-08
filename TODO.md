@@ -35,11 +35,12 @@
   gnustep-gui, optionally rebuild libtiff with JPEG on; then allow .jpg/.jpeg in the wallpaper panel (`MilanWallpaper.m`,
   `isPicture()` in `MilanWindow.m`), `~/Pictures` scanning and the icon kind table. Also on the list in
   `docs/webkit-browser-feasibility.md` (libjpeg-turbo, libwebp missing).
-- Launching: verify double-click on an `.app` starts it (`launchApplication:`), and that double-click on a document opens it
-  in its handler (`NSWorkspace openFile:`). GNUstep does have file handlers: apps declare `NSTypes` (extensions, `NSRole`,
-  `NSIcon`) in their Info plist, and NSWorkspace keeps per-extension choices in `~/GNUstep/Library/Services/.GNUstepExtPrefs`
-  (`getBestAppInRole:forExtension:` / `setBestApp:inRole:forExtension:`). Add: "Open With" submenu, "Always open with",
-  and a Get Info row showing the default app for the file's extension.
+- Launching: done with `MilanLauncher` (own launcher; NSWorkspace hands everything to GWorkspace). Still to do: starting an
+  app that is already running should activate it instead of starting a second copy (needs a running-process or DO
+  check); "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
+  `Recycler.app` needs GWorkspace running, so it is not launched usefully from Milan.
+- Info panel: the "Kind:" label of the first row did not draw in one capture (value did); check on the real screen.
+
 - Quick Look: Space bar previews the selected image (and later text) in a floating preview window; Space or Esc closes it;
   arrow keys move to the next/previous image; scale to fit, decode off the main thread.
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
