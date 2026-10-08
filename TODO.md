@@ -31,9 +31,8 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
   with JPEG works in staging but loading it in place of the system gui gave a GDNC error here (not investigated); JPEG in
   `NSImage` for other apps needs that gui deployed. Still to do: NEON SIMD in libjpeg, JPEG thumbnails in the icon view.
 
-- Launching: done with `MilanLauncher` (own launcher; NSWorkspace hands everything to GWorkspace). Still to do: starting an
-  app that is already running should activate it instead of starting a second copy (needs a running-process or DO
-  check); "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
+- Launching: done with `MilanLauncher` (own launcher; NSWorkspace hands everything to GWorkspace). Apps started by Milan are not started twice
+  ("X is already running"); activating a running app (raise its window) and apps started elsewhere still need a DO or X check; "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
   `Recycler.app` needs GWorkspace running, so it is not launched usefully from Milan.
 - Info panel: the "Kind:" label of the first row did not draw in one capture (value did); check on the real screen.
 
@@ -52,7 +51,7 @@ Preferences toggle, wallpaper chooser. Not yet exercised with real input:
     preference instead of launch arguments (`MilanDesktop`, `MilanDesktopPath`, `MilanOpenBrowser`);
   - Change Background: "Add Picture..." via an open panel (today: drop PNG/TIFF files on the panel, or put them in ~/Pictures);
     JPEG needs libjpeg in GNUstep-gui;
-  - the wallpaper canvas is built at the first draw (one decode and scale of a 1280x720 PNG); rebuild on screen-size change (RANDR).
+  - (done, untested: needs a display-mode change) the desktop window follows screen-size changes and the wallpaper canvas is rebuilt for the new size.
 
 ## Notes
 - Background work must reach the UI via `MilanRunOnMain()`, not `dispatch_async(main queue)` or

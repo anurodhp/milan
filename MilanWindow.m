@@ -259,12 +259,21 @@ setEnabledIcon(NSButton *b, BOOL on)
 	[self goTo: dir];
 	[window orderFront: nil];
 	[window display];
+	[[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(screenChanged:)
+	    name: NSApplicationDidChangeScreenParametersNotification object: nil];
 	return self;
+}
+
+/* the display mode changed (RANDR): cover the new screen; the wallpaper canvas is rebuilt for the new size on the next draw */
+- (void) screenChanged: (NSNotification *)n
+{
+	if (desktop) [window setFrame: [[NSScreen mainScreen] frame] display: YES];
 }
 
 - (void) dealloc
 {
 	int i;
+	[[NSNotificationCenter defaultCenter] removeObserver: self];
 	[sidebarTable setDataSource: nil]; [sidebarTable setDelegate: nil];
 	[sidebarTable release]; [favorites release]; [sidebarMenu release];
 	[self stopWatching];

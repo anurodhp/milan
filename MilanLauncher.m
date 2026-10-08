@@ -97,6 +97,14 @@ scan(void)
 	NSBundle *b = [NSBundle bundleWithPath: appPath];
 	NSString *exe = [b executablePath];
 	NSTask *t;
+	if (!file) {
+		/* an app this session started and that is still running: do not start a second copy */
+		for (t in running)
+			if ([t isRunning] && [[t launchPath] hasPrefix: appPath]) {
+				if (err) *err = [NSString stringWithFormat: @"%@ is already running.", [[appPath lastPathComponent] stringByDeletingPathExtension]];
+				return NO;
+			}
+	}
 	if (![exe length] || ![[NSFileManager defaultManager] isExecutableFileAtPath: exe])
 		exe = [appPath stringByAppendingPathComponent: [[appPath lastPathComponent] stringByDeletingPathExtension]];
 	if (![[NSFileManager defaultManager] isExecutableFileAtPath: exe]) {
