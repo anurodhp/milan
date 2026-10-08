@@ -11,7 +11,6 @@ Verified with real input (xinject): sidebar clicks, rubber band, menu-bar menus,
 Get Info, Open With and double-click launching (documents and apps), Quick Look, list-header sorting, all in-window dialogs
 (Empty Trash, Rename, Delete Immediately), drag to the Trash, drag between two windows, drag icons on the desktop, desktop
 Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorites, image thumbnails. Not yet exercised with real input:
-- Two info panels open together;
   the sort indicator arrows' look; drag and drop inside the columns view.
 
 ## Features
@@ -32,7 +31,6 @@ Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorit
 - Launching: done with `MilanLauncher` (own launcher; NSWorkspace hands everything to GWorkspace). Apps started by Milan are not started twice
   ("X is already running"); activating a running app (raise its window) and apps started elsewhere still need a DO or X check; "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
   `Recycler.app` needs GWorkspace running, so it is not launched usefully from Milan.
-- Info panel: the "Kind:" label of the first row did not draw in one capture (value did); check on the real screen.
 
 - Quick Look: images (PNG, TIFF, JPEG; small ones scaled up to 3x), text, and folders (item count). Still to do: PDF, zoom,
   archives, decoding large images off the main thread.

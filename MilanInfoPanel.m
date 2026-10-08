@@ -86,7 +86,6 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	if (e->isLink)
 		link = [[NSFileManager defaultManager] pathContentOfSymbolicLinkAtPath: e->path];
 
-	[rows addObject: [NSArray arrayWithObjects: @"Kind:", [e kind], nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Size:", e->isDir ? @"Calculating…" :
 	                  [NSString stringWithFormat: @"%@ (%llu bytes)", MilanFormatSize(e->size), e->size], nil]];
 	[rows addObject: [NSArray arrayWithObjects: @"Where:", [e->path stringByDeletingLastPathComponent], nil]];
@@ -130,10 +129,14 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 			NSArray *r = [rows objectAtIndex: i];
 			CGFloat y = H - top - (i + 1) * rowH + 4;
 			NSTextField *val;
-			[v addSubview: label([r objectAtIndex: 0], NSMakeRect(12, y, 84, 16), YES, NSRightTextAlignment)];
+			{
+				NSTextField *lb = label([r objectAtIndex: 0], NSMakeRect(12, y, 84, 16), YES, NSRightTextAlignment);
+				[lb setSelectable: NO];	/* the first selectable field became first responder and its label was not drawn */
+				[v addSubview: lb];
+			}
 			val = label([r objectAtIndex: 1], NSMakeRect(104, y, W - 116, 16), NO, NSLeftTextAlignment);
 			[v addSubview: val];
-			if (i == 1) sizeField = val;
+			if (i == 0) sizeField = val;
 			if ([[r objectAtIndex: 0] isEqualToString: @"Opens with:"]) {
 				NSButton *b = [[[NSButton alloc] initWithFrame: NSMakeRect(W - 76, y - 3, 64, 20)] autorelease];
 				openWithField = val;
@@ -148,6 +151,7 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 		}
 	}
 	[panel makeKeyAndOrderFront: nil];
+	[panel makeFirstResponder: nil];	/* no field starts out selected */
 	[panel display];
 
 	if (e->isDir) {
