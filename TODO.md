@@ -10,8 +10,8 @@
 Verified with real input (xinject): sidebar clicks, rubber band, menu-bar menus, context menus (icons, list, desktop, Trash),
 Get Info, Open With and double-click launching (documents and apps), Quick Look, list-header sorting, all in-window dialogs
 (Empty Trash, Rename, Delete Immediately), drag to the Trash, drag between two windows, drag icons on the desktop, desktop
-Preferences toggle, wallpaper chooser, type-to-select, sidebar favorites, image thumbnails. Not yet exercised with real input:
-- Put Back and Empty Trash through the Trash window's context menu; two info panels open together;
+Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorites, image thumbnails. Not yet exercised with real input:
+- Two info panels open together;
   the sort indicator arrows' look; drag and drop inside the columns view.
 
 ## Features
