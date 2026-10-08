@@ -1,7 +1,8 @@
 /*
  * milan: a small, fast Finder-style file manager for GNUstep.
  * Defaults: MilanStartPath (default $HOME) or a path as the first argument;
- * MilanViewMode 0|1|2 (icons|list|columns); MilanInfo /a:/b opens info panels.
+ * MilanViewMode 0|1|2 (icons|list|columns); MilanInfo /a:/b opens info panels;
+ * MilanAbout YES shows the About panel.
  */
 #import <AppKit/AppKit.h>
 #import "MilanWindow.h"
@@ -96,11 +97,17 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 
 - (void) showAbout: (id)sender
 {
+	/* same as Rome's: the keys GNUstep's info panel reads (GSInfoPanel.m) */
 	NSDictionary *opts = [NSDictionary dictionaryWithObjectsAndKeys:
 	    @"Milan", @"ApplicationName",
 	    @"A small, fast file manager for GNUstep.", @"ApplicationDescription",
-	    @"0.1", @"ApplicationRelease",
-	    [NSArray arrayWithObject: @"Anurodh Pokharel"], @"Authors", nil];
+	    @"0.4", @"ApplicationRelease",
+	    [NSArray arrayWithObject: @"Anurodh Pokharel"], @"Authors",
+	    @"Copyright \u00a9 2026 Anurodh Pokharel. MIT licence.", @"Copyright",
+	    @"Hexley DarwinOS Mascot Copyright 2000 by Jon Hooper. All Rights Reserved. "
+	    @"Toolbar and file icons are from Lucide (lucide.dev), copyright \u00a9 Lucide Contributors, ISC licence.",
+	    @"CopyrightDescription",
+	    nil];
 	[NSApp orderFrontStandardAboutPanelWithOptions: opts];
 }
 
@@ -166,6 +173,7 @@ FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD
 		NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 		NSString *info;
 		if ([d objectForKey: @"MilanViewMode"]) [[self active] setMode: (int)[d integerForKey: @"MilanViewMode"]];
+		if ([d boolForKey: @"MilanAbout"]) [self performSelector: @selector(showAbout:) withObject: nil afterDelay: 1.0];
 		if ([d boolForKey: @"MilanSelfTest"]) [[self active] runSelfTest];
 		if ([d boolForKey: @"MilanTestWindow"])
 			[self performSelector: @selector(openWindowAtPath:) withObject: @"/etc" afterDelay: 2.0];
