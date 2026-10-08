@@ -46,7 +46,16 @@ config:file-cog:#6b7480:#f4f6f8
 disk:hard-drive:#6b7480:#e8ebef
 trash:trash:#6b7480:#eceff2
 LIST
-# the application icon (an original platypus head), 128 px TIFF for the dock/about panel and a 512 px PNG
-"$T/svg2png" icons/app/milan.svg "$T/app.png" 128 && sips -s format tiff "$T/app.png" --out icons/app/Milan.tiff > /dev/null
-"$T/svg2png" icons/app/milan.svg icons/app/Milan.png 512
+# the application icon: Hexley's head and hat (icons/app/README.md) cropped onto the blue tile
+python3 -I tools/hexley_head.py
+B64="$(base64 < icons/app/hexley_head.png | tr -d '\n')"
+cat > "$T/app.svg" <<SVG
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd0ff"/><stop offset="1" stop-color="#1c6fe0"/></linearGradient></defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <image x="44" y="52" width="424" height="416" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/png;base64,$B64"/>
+</svg>
+SVG
+"$T/svg2png" "$T/app.svg" "$T/app.png" 128 && sips -s format tiff "$T/app.png" --out icons/app/Milan.tiff > /dev/null
+"$T/svg2png" "$T/app.svg" icons/app/Milan.png 512
 ls -1 icons/*.tiff | wc -l | sed 's/$/ icons written/'
