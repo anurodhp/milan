@@ -20,6 +20,12 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
+- JPEG support. GNUstep-gui is built `--disable-jpeg` (`build_gnustep_gui.sh`) and nothing builds libjpeg, so `NSImage`
+  cannot read .jpg/.jpeg: wallpapers, thumbnails and Quick Look are PNG/TIFF only today. Plan: add `build_libjpeg.sh` in the
+  iokit staging tree (libjpeg-turbo: BSD/IJG/zlib licensed, plain C, optional NEON), drop `--disable-jpeg` and rebuild
+  gnustep-gui, optionally rebuild libtiff with JPEG on; then allow .jpg/.jpeg in the wallpaper panel (`MilanWallpaper.m`,
+  `isPicture()` in `MilanWindow.m`), `~/Pictures` scanning and the icon kind table. Also on the list in
+  `docs/webkit-browser-feasibility.md` (libjpeg-turbo, libwebp missing).
 - Preference for which folder a new blank window opens in (File > New Window). For now it always opens the user's home folder.
 - Launching: verify double-click on an `.app` starts it (`launchApplication:`), and that double-click on a document opens it
   in its handler (`NSWorkspace openFile:`). GNUstep does have file handlers: apps declare `NSTypes` (extensions, `NSRole`,
