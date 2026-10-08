@@ -19,6 +19,7 @@
 
 - (void) dealloc
 {
+	[slotsKey release]; [slotCells release]; [cellToIndex release];
 	[entries release]; [path release]; [sel release]; [typed release];
 	[super dealloc];
 }
@@ -27,13 +28,46 @@
 - (BOOL) acceptsFirstResponder { return YES; }
 
 - (void) setDesktop: (BOOL)d { desktop = d; [self relayout]; }
+- (void) setSlotsKey: (NSString *)k { [slotsKey release]; slotsKey = [k copy]; [self relayout]; }
+
+static NSNumber *
+cellKey(NSInteger c, NSInteger r) { return [NSNumber numberWithInteger: c * 10000 + r]; }
+
+/* Desktop layout: icons the user placed keep their cell, the rest flow down the columns from the top right. */
+- (void) computeSlots
+{
+	NSDictionary *prefs = slotsKey ? [[NSUserDefaults standardUserDefaults] dictionaryForKey: slotsKey] : nil;
+	NSUInteger i, n = [entries count];
+	NSInteger fc = 0, fr = 0;
+	NSMutableArray *cells = [NSMutableArray arrayWithCapacity: n];
+	NSMutableDictionary *byCell = [NSMutableDictionary dictionary];
+	for (i = 0; i < n; i++) [cells addObject: [NSNull null]];
+	for (i = 0; i < n; i++) {
+		NSArray *f = [[prefs objectForKey: ((MilanEntry *)[entries objectAtIndex: i])->name] componentsSeparatedByString: @" "];
+		NSInteger c, r;
+		if ([f count] != 2) continue;
+		c = [[f objectAtIndex: 0] integerValue]; r = [[f objectAtIndex: 1] integerValue];
+		if (c < 0 || r < 0 || r >= perCol || [byCell objectForKey: cellKey(c, r)]) continue;
+		[cells replaceObjectAtIndex: i withObject: [NSArray arrayWithObjects: [NSNumber numberWithInteger: c], [NSNumber numberWithInteger: r], nil]];
+		[byCell setObject: [NSNumber numberWithUnsignedInteger: i] forKey: cellKey(c, r)];
+	}
+	for (i = 0; i < n; i++) {
+		if ([cells objectAtIndex: i] != [NSNull null]) continue;
+		while ([byCell objectForKey: cellKey(fc, fr)]) { if (++fr >= perCol) { fr = 0; fc++; } }
+		[cells replaceObjectAtIndex: i withObject: [NSArray arrayWithObjects: [NSNumber numberWithInteger: fc], [NSNumber numberWithInteger: fr], nil]];
+		[byCell setObject: [NSNumber numberWithUnsignedInteger: i] forKey: cellKey(fc, fr)];
+	}
+	[slotCells release]; slotCells = [cells retain];
+	[cellToIndex release]; cellToIndex = [byCell retain];
+}
 
 - (void) relayout
 {
 	NSScrollView *scroll = [self enclosingScrollView];
 	if (desktop) {
 		perCol = MAX(1, (NSInteger)((NSHeight([self bounds]) - 2 * PAD) / CELL_H));
-		cols = ([entries count] + perCol - 1) / perCol;
+		[self computeSlots];
+		cols = [entries count] ? 1 : 0;
 		[self setNeedsDisplay: YES];
 		return;
 	}
@@ -110,7 +144,8 @@
 - (NSRect) cellRect: (NSInteger)i
 {
 	if (desktop) {
-		NSInteger col = i / MAX(perCol, 1), row = i % MAX(perCol, 1);
+		NSArray *cr = i < (NSInteger)[slotCells count] ? [slotCells objectAtIndex: i] : nil;
+		NSInteger col = [[cr objectAtIndex: 0] integerValue], row = [[cr objectAtIndex: 1] integerValue];
 		return NSMakeRect(NSWidth([self bounds]) - PAD - (col + 1) * CELL_W, PAD + row * CELL_H, CELL_W, CELL_H);
 	}
 	return NSMakeRect(PAD + (i % cols) * CELL_W, PAD + (i / cols) * CELL_H, CELL_W, CELL_H);
@@ -120,10 +155,11 @@
 {
 	if (desktop) {
 		NSInteger col = (NSInteger)floor((NSWidth([self bounds]) - PAD - p.x) / CELL_W) , row = (NSInteger)floor((p.y - PAD) / CELL_H), i;
-		if (p.y < PAD || row >= perCol || NSWidth([self bounds]) - PAD - p.x < -CELL_W + 1) return -1;
-		if (p.x > NSWidth([self bounds]) - PAD) return -1;
-		i = col * perCol + row;
-		return col >= 0 && i >= 0 && i < (NSInteger)[entries count] ? i : -1;
+		NSNumber *found;
+		if (p.y < PAD || row >= perCol || row < 0 || p.x > NSWidth([self bounds]) - PAD || col < 0) return -1;
+		found = [cellToIndex objectForKey: cellKey(col, row)];
+		i = found ? [found integerValue] : -1;
+		return i;
 	}
 	NSInteger c = (NSInteger)((p.x - PAD) / CELL_W), r = (NSInteger)((p.y - PAD) / CELL_H), i;
 	if (p.x < PAD || p.y < PAD || c >= cols) return -1;
@@ -211,6 +247,7 @@
 	NSUInteger m = [ev modifierFlags];
 	[[self window] makeFirstResponder: self];
 	downPoint = p;
+	dragAnchor = i;
 	dragging = rubber = NO;
 	pendingDrag = NO;
 	if (i < 0) {
@@ -298,11 +335,53 @@
 	    ? NSDragOperationCopy : NSDragOperationMove;
 }
 
+/* Places the dragged icons so the grabbed one lands in the cell under `p`, the others keeping their offsets. */
+- (void) moveSelectionToPoint: (NSPoint)p
+{
+	NSInteger tc = (NSInteger)floor((NSWidth([self bounds]) - PAD - p.x) / CELL_W), tr = (NSInteger)floor((p.y - PAD) / CELL_H);
+	NSArray *ac = dragAnchor < (NSInteger)[slotCells count] ? [slotCells objectAtIndex: dragAnchor] : nil;
+	NSInteger bc = [[ac objectAtIndex: 0] integerValue], br = [[ac objectAtIndex: 1] integerValue];
+	NSMutableDictionary *prefs = [[[[NSUserDefaults standardUserDefaults] dictionaryForKey: slotsKey] mutableCopy] autorelease];
+	NSMutableSet *taken = [NSMutableSet set];
+	NSUInteger j;
+	if (!ac) return;
+	if (!prefs) prefs = [NSMutableDictionary dictionary];
+	tc = MAX(0, tc); tr = MAX(0, MIN(tr, perCol - 1));
+	for (j = 0; j < [slotCells count]; j++)
+		if (![sel containsIndex: j]) {
+			NSArray *c = [slotCells objectAtIndex: j];
+			[taken addObject: cellKey([[c objectAtIndex: 0] integerValue], [[c objectAtIndex: 1] integerValue])];
+		}
+	for (j = [sel firstIndex]; j != NSNotFound; j = [sel indexGreaterThanIndex: j]) {
+		NSArray *c = [slotCells objectAtIndex: j];
+		NSInteger nc = MAX(0, tc + [[c objectAtIndex: 0] integerValue] - bc), nr = MAX(0, MIN(perCol - 1, tr + [[c objectAtIndex: 1] integerValue] - br));
+		NSInteger d, dc, dr;
+		BOOL placed = NO;
+		for (d = 0; d < 40 && !placed; d++)		/* nearest free cell, searching outward */
+			for (dc = -d; dc <= d && !placed; dc++)
+				for (dr = -d; dr <= d && !placed; dr++) {
+					NSInteger cc = nc + dc, rr = nr + dr;
+					if (MAX(labs(dc), labs(dr)) != d || cc < 0 || rr < 0 || rr >= perCol || [taken containsObject: cellKey(cc, rr)]) continue;
+					[taken addObject: cellKey(cc, rr)];
+					[prefs setObject: [NSString stringWithFormat: @"%ld %ld", (long)cc, (long)rr]
+					          forKey: ((MilanEntry *)[entries objectAtIndex: j])->name];
+					placed = YES;
+				}
+	}
+	[[NSUserDefaults standardUserDefaults] setObject: prefs forKey: slotsKey];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+	[self relayout];
+}
+
 - (BOOL) performDragOperation: (id <NSDraggingInfo>)info
 {
 	NSArray *paths = [[info draggingPasteboard] propertyListForType: NSFilenamesPboardType];
 	BOOL copy = ([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask) != 0;
 	if (![paths count]) return NO;
+	if (desktop && [info draggingSource] == self && dragAnchor >= 0 && ![self dropTargetAt: info]) {
+		[self moveSelectionToPoint: [self convertPoint: [info draggingLocation] fromView: nil]];	/* rearranging icons, not a file operation */
+		return YES;
+	}
 	[delegate contentDropPaths: paths onto: [self dropTargetAt: info] copy: copy];
 	return YES;
 }
@@ -401,6 +480,7 @@
 	grid = [[MilanIconGrid alloc] initWithFrame: NSMakeRect(0, 0, 100, 100)];
 	[grid setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
 	[grid setDesktop: YES];
+	[grid setSlotsKey: @"MilanDesktopSlots"];
 	return self;
 }
 

@@ -55,7 +55,7 @@
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.
 - Desktop (see `docs/desktop-plan.md`): wallpaper, icons, Trash and volumes, right-click menu and the Change Background
   panel are built and driven with real input via `xinject`. Still to do:
-  - remember icon positions on the desktop (today they always flow from the top right, by name) and let icons be dragged around;
+  - (done) icon positions are remembered and icons can be dragged to a new cell (`MilanDesktopSlots` default).
   - session start-up: launch `Milan -MilanDesktop YES -MilanOpenBrowser NO` from the Window Maker autostart, and a
     preference instead of launch arguments (`MilanDesktop`, `MilanDesktopPath`, `MilanOpenBrowser`);
   - Change Background: "Add Picture..." via an open panel (today: drop PNG/TIFF files on the panel, or put them in ~/Pictures);
