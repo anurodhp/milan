@@ -5,6 +5,7 @@
 #import "MilanFileOps.h"
 #import "MilanInfoPanel.h"
 #import "MilanIcons.h"
+#import "MilanTrash.h"
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -50,6 +51,25 @@ setEnabledIcon(NSButton *b, BOOL on)
 	NSString *n = [b identifier];
 	[b setEnabled: on];
 	[b setImage: [MilanIcons imageNamed: [NSString stringWithFormat: @"tb-%@-%@", n, on ? @"normal" : @"disabled"]]];
+}
+
+/* Whether any Trash has something in it; cached for a couple of seconds so drawing stays cheap. */
+static BOOL
+trashHasItems(void)
+{
+	static NSTimeInterval at;
+	static BOOL full;
+	NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+	if (now - at > 2.0) {
+		NSFileManager *fm = [NSFileManager defaultManager];
+		NSString *d, *n;
+		full = NO;
+		for (d in [MilanTrash trashDirectories])
+			for (n in [fm contentsOfDirectoryAtPath: d error: NULL])
+				if (![n isEqualToString: MilanTrashOriginsName] && ![n isEqualToString: @".DS_Store"] && ![n isEqualToString: @".gwdir"]) full = YES;
+		at = now;
+	}
+	return full;
 }
 
 - (id) initWithPath: (NSString *)p
@@ -129,6 +149,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 				[fav addObject: [NSArray arrayWithObjects: d, [h stringByAppendingPathComponent: d], @"ft-folder", nil]];
 		[fav addObject: [NSArray arrayWithObjects: @"Applications", @"/Applications", @"ft-app", nil]];
 		[fav addObject: [NSArray arrayWithObjects: @"Computer", @"/", @"ft-disk", nil]];
+		[fav addObject: [NSArray arrayWithObjects: @"Trash", MilanTrashPath, @"ft-trash", nil]];
 		favorites = [fav retain];
 		sidebarTable = [[NSTableView alloc] initWithFrame: NSMakeRect(0, 0, SIDEBAR_W, 200)];
 		c = [[[NSTableColumn alloc] initWithIdentifier: @"favicon"] autorelease];
@@ -200,7 +221,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 
 - (void) goTo: (NSString *)p
 {
-	p = [p stringByStandardizingPath];
+	if (![p isEqualToString: MilanTrashPath]) p = [p stringByStandardizingPath];
 	if ([p length] == 0) p = @"/";
 	if (hIndex >= 0 && [[history objectAtIndex: hIndex] isEqualToString: p] && [p isEqualToString: path]) return;
 	while ((NSInteger)[history count] > hIndex + 1) [history removeLastObject];
@@ -215,20 +236,25 @@ setEnabledIcon(NSButton *b, BOOL on)
 	path = [[history objectAtIndex: hIndex] retain];
 	setEnabledIcon(backBtn, hIndex > 0);
 	setEnabledIcon(fwdBtn, hIndex < (NSInteger)[history count] - 1);
-	setEnabledIcon(upBtn, ![path isEqualToString: @"/"]);
+	setEnabledIcon(upBtn, ![path isEqualToString: @"/"] && ![path isEqualToString: MilanTrashPath]);
 	[self syncSidebar];
-	[window setTitle: [path isEqualToString: @"/"] ? @"/" : [path lastPathComponent]];
-	[window setRepresentedFilename: path];
+	if ([path isEqualToString: MilanTrashPath]) {
+		[window setTitle: @"Trash"];
+	} else {
+		[window setTitle: [path isEqualToString: @"/"] ? @"/" : [path lastPathComponent]];
+		[window setRepresentedFilename: path];
+	}
 	[self load: YES];
 	[self watchPath];
 }
 
 - (void) goBack: (id)s { if (hIndex > 0) { hIndex--; [self showHistoryEntry]; } }
 - (void) goForward: (id)s { if (hIndex + 1 < (NSInteger)[history count]) { hIndex++; [self showHistoryEntry]; } }
-- (void) goUp: (id)s { if (![path isEqualToString: @"/"]) [self goTo: [path stringByDeletingLastPathComponent]]; }
+- (void) goUp: (id)s { if (![path isEqualToString: @"/"] && ![path isEqualToString: MilanTrashPath]) [self goTo: [path stringByDeletingLastPathComponent]]; }
 - (void) goHome: (id)s { [self goTo: NSHomeDirectory()]; }
 - (void) goApplications: (id)s { [self goTo: @"/Applications"]; }
 - (void) goRoot: (id)s { [self goTo: @"/"]; }
+- (void) goTrash: (id)s { [self goTo: MilanTrashPath]; }
 
 /* ---- favorites sidebar ---- */
 
@@ -237,7 +263,14 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (id) tableView: (NSTableView *)t objectValueForTableColumn: (NSTableColumn *)c row: (NSInteger)r
 {
 	NSArray *f = [favorites objectAtIndex: r];
-	if ([[c identifier] isEqualToString: @"favicon"]) return [MilanIcons imageNamed: [f objectAtIndex: 2]];
+	if ([[c identifier] isEqualToString: @"favicon"]) {
+		if ([[f objectAtIndex: 1] isEqualToString: MilanTrashPath]) {
+			/* the Eau theme's own Recycler images (common_RecyclerEmpty/Full), as GWorkspace's dock uses */
+			NSImage *ti = [NSImage imageNamed: trashHasItems() ? @"common_RecyclerFull" : @"common_RecyclerEmpty"];
+			if (ti) return ti;
+		}
+		return [MilanIcons imageNamed: [f objectAtIndex: 2]];
+	}
 	return [f objectAtIndex: 0];
 }
 
@@ -273,6 +306,8 @@ setEnabledIcon(NSButton *b, BOOL on)
 		else [cur reloadEntries: entries];
 		if (err) [status setStringValue: err];
 		else [self contentSelectionChanged];
+		[sidebarTable reloadData];
+		[self syncSidebar];
 	}];
 }
 
@@ -286,7 +321,9 @@ setEnabledIcon(NSButton *b, BOOL on)
 {
 	NSString *dest = folder ? folder : [self currentPath];
 	MilanOpDone done = ^(NSString *e) { [self report: e]; [self load: NO]; };
-	if (copy) [MilanFileOps copyPaths: paths toDir: dest done: done];
+	if ([dest isEqualToString: MilanTrashPath]) [MilanTrash trashPaths: paths done: done];	/* dropped on the Trash */
+	else if (MilanPathInTrash(dest)) { NSBeep(); }	/* nothing is copied or moved into a Trash folder by hand */
+	else if (copy) [MilanFileOps copyPaths: paths toDir: dest done: done];
 	else [MilanFileOps movePaths: paths toDir: dest done: done];
 }
 
@@ -308,7 +345,8 @@ setEnabledIcon(NSButton *b, BOOL on)
 	int fd;
 	dispatch_source_t src;
 	[self stopWatching];
-	fd = open([path fileSystemRepresentation], O_EVTONLY);
+	/* the merged Trash watches the home trash; the others reload after their own operations */
+	fd = open([([path isEqualToString: MilanTrashPath] ? [[MilanTrash trashDirectories] objectAtIndex: 0] : path) fileSystemRepresentation], O_EVTONLY);
 	if (fd < 0) return;
 	/* the source lives on a global queue and hops to the main thread: main-queue sources do not wake
 	 * GNUstep's run loop */
@@ -364,15 +402,30 @@ setEnabledIcon(NSButton *b, BOOL on)
 		[status setStringValue: [NSString stringWithFormat: @"%lu items", (unsigned long)[entries count]]];
 }
 
+/* Nothing in a Trash is opened or run: only folders may be browsed. Every open path goes through here. */
+- (BOOL) openAllowedFor: (NSArray *)sel
+{
+	MilanEntry *e;
+	for (e in sel)
+		if (MilanPathInTrash(e->path) && !(e->isDir && !e->isApp)) return NO;
+	return YES;
+}
+
 - (void) contentOpen: (NSArray *)sel
 {
 	MilanEntry *e;
 	NSWorkspace *ws = [NSWorkspace sharedWorkspace];
+	if (![self openAllowedFor: sel]) {
+		NSBeep();
+		[status setStringValue: @"Items in the Trash can't be opened. Put Back first."];
+		return;
+	}
 	if ([sel count] == 1) {
 		e = [sel objectAtIndex: 0];
 		if (e->isDir && !e->isApp) { [self goTo: e->path]; return; }
 	}
 	for (e in sel) {
+		if (MilanPathInTrash(e->path)) continue;	/* belt and braces: never launch or open from a Trash */
 		if (e->isApp) [ws launchApplication: e->path];
 		else if (e->isDir) { [[NSApp delegate] performSelector: @selector(openWindowAtPath:) withObject: e->path]; }
 		else [ws openFile: e->path];
@@ -395,7 +448,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 {
 	NSArray *t = [NSArray arrayWithObjects: @"Open", @"Get Info", @"Rename…", @"-", @"Cut", @"Copy", @"Paste",
 	              @"-", @"Move to Trash", @"New Folder", nil];
-	SEL sels[] = { @selector(openSelection:), @selector(getInfo:), @selector(renameSelection:), NULL,
+	SEL sels[] = { @selector(openSelection:), @selector(getInfo:), @selector(renameSelection:), @selector(putBack:), NULL,
 	               @selector(cutFiles:), @selector(copyFiles:), @selector(pasteFiles:), NULL,
 	               @selector(trashSelection:), @selector(newFolder:) };
 	NSUInteger i;
@@ -413,7 +466,13 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (BOOL) validateMenuItem: (NSMenuItem *)item
 {
 	SEL a = [item action];
-	BOOL has = [[cur selectedEntries] count] > 0;
+	BOOL has = [[cur selectedEntries] count] > 0, inTrash = MilanPathInTrash([self currentPath]);
+	if (a == @selector(putBack:)) return inTrash && has;
+	if (a == @selector(emptyTrash:)) return YES;
+	if (inTrash && (a == @selector(newFolder:) || a == @selector(pasteFiles:) || a == @selector(renameSelection:)
+	                || a == @selector(trashSelection:)))
+		return NO;
+	if (inTrash && a == @selector(openSelection:)) return has && [self openAllowedFor: [cur selectedEntries]];
 	if (a == @selector(openSelection:) || a == @selector(copyFiles:) || a == @selector(cutFiles:)
 	    || a == @selector(trashSelection:) || a == @selector(getInfo:))
 		return has || a == @selector(getInfo:);
@@ -458,6 +517,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 
 - (void) pasteFiles: (id)s
 {
+	if (MilanPathInTrash([self currentPath])) { NSBeep(); return; }
 	NSPasteboard *pb = [NSPasteboard generalPasteboard];
 	NSArray *p = [pb propertyListForType: NSFilenamesPboardType];
 	NSString *dest = [cur browsedPath] ? [cur browsedPath] : path;
@@ -474,11 +534,12 @@ setEnabledIcon(NSButton *b, BOOL on)
 {
 	NSArray *p = [self selectedPaths];
 	if ([p count])
-		[MilanFileOps trashPaths: p done: ^(NSString *e) { [self report: e]; [self load: NO]; }];
+		[MilanTrash trashPaths: p done: ^(NSString *e) { [self report: e]; [self load: NO]; }];
 }
 
 - (void) newFolder: (id)s
 {
+	if (MilanPathInTrash([self currentPath])) { NSBeep(); return; }
 	[MilanFileOps newFolderIn: [cur browsedPath] ? [cur browsedPath] : path
 	                     done: ^(NSString *made, NSString *e) {
 		[self report: e];
@@ -521,6 +582,25 @@ setEnabledIcon(NSButton *b, BOOL on)
 }
 
 - (void) modalButton: (id)b { [NSApp stopModalWithCode: [b tag]]; }
+- (void) putBack: (id)s
+{
+	NSArray *p = [self selectedPaths];
+	if ([p count])
+		[MilanTrash putBackPaths: p done: ^(NSString *e) { [self report: e]; [self load: NO]; }];
+}
+
+- (void) emptyTrashNoConfirm
+{
+	[MilanTrash emptyDone: ^(NSString *e) { [self report: e]; [self load: NO]; }];
+}
+
+- (void) emptyTrash: (id)s
+{
+	if (NSRunAlertPanel(@"Empty the Trash?", @"All items in the Trash will be permanently deleted. This cannot be undone.",
+	                    @"Empty Trash", @"Cancel", nil) != NSAlertDefaultReturn) return;
+	[MilanTrash emptyDone: ^(NSString *e) { [self report: e]; [self load: NO]; }];
+}
+
 - (void) selectAllItems: (id)s { [cur selectAll]; }
 
 /* ---- self test (-MilanSelfTest YES): drives the real actions on a scratch tree and logs PASS/FAIL ---- */
@@ -548,11 +628,12 @@ exists(NSString *p)
 - (void) runSelfTest
 {
 	NSFileManager *fm = [NSFileManager defaultManager];
-	NSString *root = @"/tmp/milan-test", *trashed = [NSHomeDirectory() stringByAppendingPathComponent: @".Trash/z.txt"];
+	NSString *root = @"/tmp/milan-test", *trashHome = @"/tmp/milan-test-trash", *trashed = [trashHome stringByAppendingPathComponent: @"z.txt"];
 	NSArray *steps;
 	NSUInteger i;
 	[fm removeItemAtPath: root error: NULL];
-	[fm removeItemAtPath: trashed error: NULL];
+	[fm removeItemAtPath: trashHome error: NULL];
+	MilanSetTrashHome(trashHome);
 	[fm createDirectoryAtPath: [root stringByAppendingPathComponent: @"sub"] withIntermediateDirectories: YES attributes: nil error: NULL];
 	[@"hello" writeToFile: [root stringByAppendingPathComponent: @"a.txt"] atomically: YES encoding: NSUTF8StringEncoding error: NULL];
 	[@"int x;" writeToFile: [root stringByAppendingPathComponent: @"b.c"] atomically: YES encoding: NSUTF8StringEncoding error: NULL];
@@ -566,8 +647,14 @@ exists(NSString *p)
 	    ^{ check(exists([root stringByAppendingPathComponent: @"sub/b.c"]) && !exists([root stringByAppendingPathComponent: @"b.c"]), @"cut+paste moves b.c into sub"); [self goTo: root]; },
 	    ^{ [MilanFileOps renamePath: [root stringByAppendingPathComponent: @"a.txt"] to: @"z.txt" done: ^(NSString *e) { check(!e && exists([root stringByAppendingPathComponent: @"z.txt"]), @"rename a.txt -> z.txt"); }]; },
 	    ^{ [cur selectPath: [root stringByAppendingPathComponent: @"z.txt"]]; check([[cur selectedEntries] count] == 1, @"select z.txt after rename (live refresh)"); [self getInfo: nil]; [self trashSelection: nil]; },
-	    ^{ check(exists(trashed) && !exists([root stringByAppendingPathComponent: @"z.txt"]), @"trash moves z.txt to ~/.Trash"); [MilanFileOps newFolderIn: root done: ^(NSString *m, NSString *e) { check(m != nil, @"new folder"); }]; },
-	    ^{ [self switchToMode: 0]; [cur selectAll]; check([[cur selectedEntries] count] >= 3, @"icons: select all"); },
+	    ^{ check(exists(trashed) && !exists([root stringByAppendingPathComponent: @"z.txt"]), @"trash moves z.txt to the (scratch) Trash"); [MilanFileOps newFolderIn: root done: ^(NSString *m, NSString *e) { check(m != nil, @"new folder"); }]; },
+	    ^{ [self goTo: MilanTrashPath]; },
+	    ^{ NSArray *e = [cur selectedEntries]; (void)e; [cur selectAll]; check([[cur selectedEntries] count] == 1 && [[cur browsedPath] isEqualToString: MilanTrashPath], @"merged Trash lists the trashed z.txt"); check(![self openAllowedFor: [cur selectedEntries]], @"open/execute from the Trash is refused"); [self contentOpen: [cur selectedEntries]]; [self putBack: nil]; },
+	    ^{ check(exists([root stringByAppendingPathComponent: @"z.txt"]) && !exists([trashHome stringByAppendingPathComponent: @"z.txt"]), @"Put Back restores z.txt to its origin"); [self trashSelection: nil]; [cur selectPath: [root stringByAppendingPathComponent: @"z.txt"]]; [self trashSelection: nil]; },
+	    ^{ [self emptyTrashNoConfirm]; },
+	    ^{ NSArray *left = [[NSFileManager defaultManager] contentsOfDirectoryAtPath: trashHome error: NULL]; check([left count] == 0, @"Empty Trash leaves the trash empty"); MilanSetTrashHome(nil); },
+	    ^{ [self goTo: root]; [self switchToMode: 0]; },
+	    ^{ [cur selectAll]; check([[cur selectedEntries] count] >= 3, @"icons: select all"); },
 	    ^{ [self switchToMode: 1]; [self goTo: root]; },
 	    ^{ [self contentDropPaths: [NSArray arrayWithObject: [root stringByAppendingPathComponent: @"a copy.txt"]] onto: [root stringByAppendingPathComponent: @"sub"] copy: NO]; },
 	    ^{ check(exists([root stringByAppendingPathComponent: @"sub/a copy.txt"]) && !exists([root stringByAppendingPathComponent: @"a copy.txt"]), @"drop moves 'a copy.txt' onto folder sub"); [self contentDropPaths: [NSArray arrayWithObject: [root stringByAppendingPathComponent: @"sub/a copy.txt"]] onto: nil copy: YES]; },

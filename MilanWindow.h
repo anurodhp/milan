@@ -40,6 +40,10 @@
 - (void) goHome: (id)s;
 - (void) goApplications: (id)s;
 - (void) goRoot: (id)s;
+- (void) goTrash: (id)s;
+- (void) putBack: (id)s;
+- (void) emptyTrash: (id)s;
+- (BOOL) openAllowedFor: (NSArray *)sel;
 - (void) setViewMode: (id)s;
 - (void) setMode: (int)m;
 - (void) viewAsIcons: (id)s;

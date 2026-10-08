@@ -44,5 +44,9 @@ app:app-window:#2f7fd8:#dcebff
 exec:square-terminal:#3b4350:#e5e8ec
 config:file-cog:#6b7480:#f4f6f8
 disk:hard-drive:#6b7480:#e8ebef
+trash:trash:#6b7480:#eceff2
 LIST
+# the application icon (an original platypus head), 128 px TIFF for the dock/about panel and a 512 px PNG
+"$T/svg2png" icons/app/milan.svg "$T/app.png" 128 && sips -s format tiff "$T/app.png" --out icons/app/Milan.tiff > /dev/null
+"$T/svg2png" icons/app/milan.svg icons/app/Milan.png 512
 ls -1 icons/*.tiff | wc -l | sed 's/$/ icons written/'

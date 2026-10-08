@@ -1,4 +1,5 @@
 #import "MilanEntry.h"
+#import "MilanTrash.h"
 #include <dirent.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -171,8 +172,28 @@ make_entry(const char *dir, const char *cname, NSString *dirPath)
 		NSMutableArray *out = nil;
 		NSString *err = nil;
 		const char *dir = [p fileSystemRepresentation];
-		DIR *d = opendir(dir);
-		if (!d) {
+		DIR *d = [p isEqualToString: MilanTrashPath] ? NULL : opendir(dir);
+		if ([p isEqualToString: MilanTrashPath]) {
+			/* the merged Trash: every trash directory, minus the Put Back sidecars */
+			NSString *td;
+			out = [NSMutableArray arrayWithCapacity: 64];
+			for (td in [MilanTrash trashDirectories]) {
+				DIR *t = opendir([td fileSystemRepresentation]);
+				struct dirent *de;
+				if (!t) continue;
+				while ((de = readdir(t))) {
+					MilanEntry *e;
+					if (de->d_name[0] == '.' && (de->d_name[1] == 0 || (de->d_name[1] == '.' && de->d_name[2] == 0)))
+						continue;
+					if (strcmp(de->d_name, [MilanTrashOriginsName UTF8String]) == 0 || strcmp(de->d_name, ".DS_Store") == 0)
+						continue;
+					if (!hidden && de->d_name[0] == '.') continue;
+					if ((e = make_entry([td fileSystemRepresentation], de->d_name, td))) [out addObject: e];
+				}
+				closedir(t);
+			}
+			[self sort: out key: key ascending: asc];
+		} else if (!d) {
 			err = [NSString stringWithUTF8String: strerror(errno)];
 		} else {
 			struct dirent *de;

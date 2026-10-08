@@ -86,7 +86,7 @@ add_item(NSMenu *m, NSString *title, SEL action, NSString *key, id target)
 FWD(goBack) FWD(goForward) FWD(goUp) FWD(goHome) FWD(goApplications) FWD(goRoot)
 FWD(viewAsIcons) FWD(viewAsList) FWD(viewAsColumns) FWD(toggleHidden)
 FWD(openSelection) FWD(getInfo) FWD(copyFiles) FWD(cutFiles) FWD(pasteFiles)
-FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
+FWD(putBack) FWD(emptyTrash) FWD(goTrash) FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
 
 - (BOOL) validateMenuItem: (NSMenuItem *)i
 {
@@ -120,6 +120,8 @@ FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
 	add_item(m, @"Get Info", @selector(getInfo:), @"i", self);
 	add_item(m, @"Rename…", @selector(renameSelection:), @"", self);
 	add_item(m, @"Move to Trash", @selector(trashSelection:), @"\x7f", self);
+	add_item(m, @"Put Back", @selector(putBack:), @"", self);
+	add_item(m, @"Empty Trash\u2026", @selector(emptyTrash:), @"", self);
 	add_item(m, @"Close Window", @selector(performClose:), @"w", nil);
 	[main setSubmenu: m forItem: add_item(main, @"File", NULL, nil, nil)]; [m release];
 
@@ -144,6 +146,7 @@ FWD(trashSelection) FWD(newFolder) FWD(renameSelection) FWD(selectAllItems)
 	add_item(m, @"Home", @selector(goHome:), @"", self);
 	add_item(m, @"Applications", @selector(goApplications:), @"", self);
 	add_item(m, @"Computer", @selector(goRoot:), @"", self);
+	add_item(m, @"Trash", @selector(goTrash:), @"", self);
 	[main setSubmenu: m forItem: add_item(main, @"Go", NULL, nil, nil)]; [m release];
 
 	[NSApp setMainMenu: main];

@@ -4,12 +4,15 @@
 - Rubber-band, type-to-select and drag-and-drop with a real mouse/keyboard (only the drop handler is self-tested).
 - App launch by double-click (`launchApplication:`).
 - Sort indicator arrows in list headers (code in place, not visually checked).
+- Trash sidebar icon (Eau RecyclerEmpty/Full), Put Back and Empty Trash with real clicks.
 - Right-click context menu with real mouse events.
 - Rename sheet (modal panel).
 - List-view column-header sorting.
 - Two or more info panels open at once.
 
 ## Features
+- Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
+- Trash: the merged view only watches the home trash for live refresh.
 - Real mouse-drag test of drag and drop (all three views have it now).
 - Sidebar: user-editable favorites.
 - Consider `NSToolbar` (GNUstep has it) now that icons exist.

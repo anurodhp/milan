@@ -12,8 +12,8 @@ opsQueue(void)
 }
 
 /* "name", "name copy", "name copy 2", ... that does not exist in dir. */
-static NSString *
-uniquePath(NSFileManager *fm, NSString *dir, NSString *name)
+NSString *
+MilanUniquePath(NSFileManager *fm, NSString *dir, NSString *name)
 {
 	NSString *p = [dir stringByAppendingPathComponent: name];
 	NSString *ext = [name pathExtension], *base = [name stringByDeletingPathExtension];
@@ -28,8 +28,8 @@ uniquePath(NSFileManager *fm, NSString *dir, NSString *name)
 	return p;
 }
 
-static void
-run(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
+void
+MilanOpsRun(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
 {
 	void (^w)(NSFileManager *, NSString **) = [work copy];
 	MilanOpDone d = [done copy];
@@ -51,11 +51,11 @@ run(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
 + (void) copyPaths: (NSArray *)paths toDir: (NSString *)dir done: (MilanOpDone)done
 {
 	paths = [paths copy]; dir = [dir copy];
-	run(^(NSFileManager *fm, NSString **err) {
+	MilanOpsRun(^(NSFileManager *fm, NSString **err) {
 		NSString *p;
 		for (p in paths) {
 			NSError *e = nil;
-			NSString *dst = uniquePath(fm, dir, [p lastPathComponent]);
+			NSString *dst = MilanUniquePath(fm, dir, [p lastPathComponent]);
 			if (![fm copyItemAtPath: p toPath: dst error: &e]) {
 				*err = [NSString stringWithFormat: @"Could not copy %@: %@", [p lastPathComponent],
 				        [e localizedDescription]];
@@ -68,13 +68,13 @@ run(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
 + (void) movePaths: (NSArray *)paths toDir: (NSString *)dir done: (MilanOpDone)done
 {
 	paths = [paths copy]; dir = [dir copy];
-	run(^(NSFileManager *fm, NSString **err) {
+	MilanOpsRun(^(NSFileManager *fm, NSString **err) {
 		NSString *p;
 		for (p in paths) {
 			NSError *e = nil;
 			if ([[p stringByDeletingLastPathComponent] isEqualToString: dir])
 				continue;
-			if (![fm moveItemAtPath: p toPath: uniquePath(fm, dir, [p lastPathComponent]) error: &e]) {
+			if (![fm moveItemAtPath: p toPath: MilanUniquePath(fm, dir, [p lastPathComponent]) error: &e]) {
 				*err = [NSString stringWithFormat: @"Could not move %@: %@", [p lastPathComponent],
 				        [e localizedDescription]];
 				break;
@@ -83,21 +83,13 @@ run(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
 	}, ^(NSString *err) { if (done) done(err); [paths release]; [dir release]; });
 }
 
-+ (void) trashPaths: (NSArray *)paths done: (MilanOpDone)done
-{
-	NSString *trash = [NSHomeDirectory() stringByAppendingPathComponent: @".Trash"];
-	[[NSFileManager defaultManager] createDirectoryAtPath: trash withIntermediateDirectories: YES
-	                                           attributes: nil error: NULL];
-	[self movePaths: paths toDir: trash done: done];
-}
-
 + (void) newFolderIn: (NSString *)dir done: (void (^)(NSString *, NSString *))done
 {
 	__block NSString *made = nil;
 	dir = [dir copy];
-	run(^(NSFileManager *fm, NSString **err) {
+	MilanOpsRun(^(NSFileManager *fm, NSString **err) {
 		NSError *e = nil;
-		NSString *p = uniquePath(fm, dir, @"untitled folder");
+		NSString *p = MilanUniquePath(fm, dir, @"untitled folder");
 		if ([fm createDirectoryAtPath: p withIntermediateDirectories: NO attributes: nil error: &e])
 			made = [p retain];
 		else
@@ -108,7 +100,7 @@ run(void (^work)(NSFileManager *fm, NSString **err), MilanOpDone done)
 + (void) renamePath: (NSString *)path to: (NSString *)newName done: (MilanOpDone)done
 {
 	path = [path copy]; newName = [newName copy];
-	run(^(NSFileManager *fm, NSString **err) {
+	MilanOpsRun(^(NSFileManager *fm, NSString **err) {
 		NSError *e = nil;
 		NSString *dst = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent: newName];
 		if ([fm fileExistsAtPath: dst])

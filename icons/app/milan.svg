@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6fd0ff"/>
+      <stop offset="1" stop-color="#1c6fe0"/>
+    </linearGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8d5e3a"/>
+      <stop offset="1" stop-color="#6a4429"/>
+    </linearGradient>
+    <linearGradient id="bill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ecc994"/>
+      <stop offset="1" stop-color="#d3a46c"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <!-- head: a flattened dome of fur, no external ears -->
+  <path d="M96 300 C84 200 150 112 256 112 C362 112 428 200 416 300 Z" fill="url(#fur)"/>
+  <ellipse cx="256" cy="282" rx="166" ry="40" fill="#6a4429"/>
+  <!-- the flat duck bill -->
+  <path d="M86 312 C86 262 128 250 176 250 L336 250 C384 250 426 262 426 312 C426 366 384 384 336 384 L176 384 C128 384 86 366 86 312 Z"
+        fill="url(#bill)" stroke="#a97d4a" stroke-width="7"/>
+  <path d="M110 300 C150 288 362 288 402 300" fill="none" stroke="#c39a62" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="228" cy="276" rx="8" ry="14" fill="#5d3f22"/>
+  <ellipse cx="284" cy="276" rx="8" ry="14" fill="#5d3f22"/>
+  <!-- eyes, set high on the head -->
+  <circle cx="184" cy="196" r="36" fill="#ffffff"/>
+  <circle cx="328" cy="196" r="36" fill="#ffffff"/>
+  <circle cx="205" cy="184" r="17" fill="#14181f"/>
+  <circle cx="333" cy="184" r="17" fill="#14181f"/>
+  <circle cx="210" cy="177" r="6" fill="#ffffff"/>
+  <circle cx="338" cy="177" r="6" fill="#ffffff"/>
+  <!-- horned hat -->
+  <path d="M176 70 C150 40 160 4 196 -4 C186 24 196 44 214 62 Z" transform="translate(0 40)" fill="#f2efe6" stroke="#b9b1a0" stroke-width="5"/>
+  <path d="M336 70 C362 40 352 4 316 -4 C326 24 316 44 298 62 Z" transform="translate(0 40)" fill="#f2efe6" stroke="#b9b1a0" stroke-width="5"/>
+  <path d="M158 138 C160 92 200 74 256 74 C312 74 352 92 354 138 C320 124 192 124 158 138 Z" fill="#c62f2f" stroke="#8f1f1f" stroke-width="6"/>
+  <path d="M160 140 C200 126 312 126 352 140 L352 154 C312 140 200 140 160 154 Z" fill="#e24a3a" stroke="#8f1f1f" stroke-width="5"/>
+</svg>
