@@ -44,7 +44,17 @@ static BOOL prevMoved;
 	menu = [m retain];
 	hot = -1;
 	[menu update];		/* runs validateMenuItem: for each item (autoenabling) */
-	items = [[menu itemArray] retain];
+	{
+		/* drop items tagged 910 when disabled, then any separator left leading, trailing or doubled */
+		NSMutableArray *keep = [NSMutableArray array];
+		for (it in [menu itemArray]) {
+			if ([it tag] == 910 && ![it isEnabled]) continue;
+			if ([it isSeparatorItem] && ([keep count] == 0 || [[keep lastObject] isSeparatorItem])) continue;
+			[keep addObject: it];
+		}
+		while ([keep count] && [[keep lastObject] isSeparatorItem]) [keep removeLastObject];
+		items = [keep retain];
+	}
 	enabled = [[NSMutableArray alloc] init];
 	for (it in items) [enabled addObject: [NSNumber numberWithBool: ![it isSeparatorItem] && [it isEnabled]]];
 	return self;

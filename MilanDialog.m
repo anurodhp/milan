@@ -109,7 +109,15 @@ static MilanDialogView *active;
 {
 	NSWindow *w = [self window];
 	previous = [w firstResponder];
-	if (field) { [w makeFirstResponder: field]; [field selectText: nil]; }
+	if (field) {
+		NSString *v = [field stringValue];
+		NSRange dot = [v rangeOfString: @"." options: NSBackwardsSearch];
+		[w makeFirstResponder: field];
+		[field selectText: nil];
+		/* a file name: select the name without its extension, as Finder does */
+		if (dot.location != NSNotFound && dot.location > 0 && [field currentEditor])
+			[(NSTextView *)[field currentEditor] setSelectedRange: NSMakeRange(0, dot.location)];
+	}
 	else [w makeFirstResponder: self];
 	[w display];
 }

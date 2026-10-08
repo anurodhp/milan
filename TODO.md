@@ -7,10 +7,8 @@
   browser windows and the menu bar are visible above the desktop. If not, the desktop window's stacking or its 32-bit visual is the suspect.
 
 ## Device testing (Pi)
-- In-window dialogs (`MilanDialog`): Empty Trash confirm verified with real clicks (Cancel keeps, Empty Trash deletes, Esc
-  cancels). **Not yet working/verified:** Return accepting the plain confirm (it did not in two runs; the Return key may be
-  going elsewhere, log the key in `MilanDialog -keyDown:`), the Rename overlay (text field), Delete Immediately in the Trash view.
-  Note: only send xinject keystrokes after clicking Milan's title bar, or they land in whichever app has focus.
+- In-window dialogs (`MilanDialog`): all verified with real input: Empty Trash (Cancel/Esc/Return/click), Rename (name without extension pre-selected),
+  Delete Immediately in the Trash view. Only send xinject keystrokes after clicking Milan's title bar, or they land in whichever app has focus.
 - Done with real input via xinject: sidebar click, rubber band, menu-bar menus, context menu and Get Info, desktop menu,
   Change Background panel (live wallpaper change, persisted), double-click a desktop folder, drag a file onto the Trash.
 - Rubber-band, type-to-select and drag-and-drop with a real mouse/keyboard (only the drop handler is self-tested).

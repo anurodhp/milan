@@ -580,6 +580,8 @@ setEnabledIcon(NSButton *b, BOOL on)
 		it = (NSMenuItem *)[ctxMenu addItemWithTitle: [NSString stringWithUTF8String: items[i].title]
 		                                      action: items[i].action keyEquivalent: @""];
 		[it setTarget: self];
+		/* tag 910: shown only when enabled (Put Back, Delete Immediately apply in the Trash only) */
+		if (items[i].action == @selector(putBack:) || items[i].action == @selector(deleteImmediately:)) [it setTag: 910];
 	}
 }
 
