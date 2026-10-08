@@ -180,6 +180,20 @@ check(BOOL ok, NSString *what)
 
 - (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
 
+/* from Preferences: draw the desktop now, or take it away again */
+- (void) setDesktopEnabled: (NSNumber *)on
+{
+	MilanWindow *w, *desk = nil;
+	for (w in windows) if ([w isDesktop]) desk = w;
+	if ([on boolValue] && !desk) [self openDesktop];
+	else if (![on boolValue] && desk) {
+		[[desk window] orderOut: nil];
+		[desk retain];
+		[windows removeObject: desk];
+		[desk autorelease];
+	}
+}
+
 /* -MilanBaseTest YES: the GNUstep base API this repo's libs-base fork adds (NSData options/error, NFC/NFD without ICU) */
 - (void) runBaseTest
 {

@@ -38,6 +38,7 @@
 - (void) setDesktopPicture: (id)s;
 - (NSWindow *) window;
 - (NSString *) currentPath;
+- (BOOL) isDesktop;
 - (void) goTo: (NSString *)p;
 - (void) runSelfTest;
 - (void) goBack: (id)s;

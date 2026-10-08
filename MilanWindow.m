@@ -254,6 +254,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 }
 
 - (NSWindow *) window { return window; }
+- (BOOL) isDesktop { return desktop; }
 /* the folder actions apply to: the window's own folder at once on navigation (the view only catches up
  * when the load completes); in columns view, the deepest open column */
 - (NSString *) currentPath
