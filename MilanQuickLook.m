@@ -1,5 +1,7 @@
 #import "MilanQuickLook.h"
 #import "MilanIcons.h"
+#import "MilanWallpaper.h"
+#import "MilanImage.h"
 
 #define MAX_TEXT (48 * 1024)
 #define MAX_IMAGE_BYTES (24 * 1024 * 1024)
@@ -48,8 +50,8 @@ isTextExt(NSString *x)
 	[image release]; image = nil;
 	[text release]; text = nil;
 	if (!e->isDir) {
-		if (([x isEqualToString: @"png"] || [x isEqualToString: @"tif"] || [x isEqualToString: @"tiff"]) && e->size < MAX_IMAGE_BYTES)
-			image = [[NSImage alloc] initWithContentsOfFile: e->path];
+		if (MilanIsPictureExtension(x) && e->size < MAX_IMAGE_BYTES)
+			image = [MilanLoadImage(e->path) retain];
 		else if (isTextExt(x) || (e->size < MAX_TEXT && !(e->mode & 0111) && ![x length])) {
 			NSData *d = [NSData dataWithContentsOfFile: e->path];
 			if ([d length] > MAX_TEXT) d = [d subdataWithRange: NSMakeRange(0, MAX_TEXT)];

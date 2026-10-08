@@ -1,7 +1,17 @@
 #import "MilanWallpaper.h"
 #import "MilanIcons.h"
+#import "MilanImage.h"
 
 NSString *const MilanWallpaperChanged = @"MilanWallpaperChanged";
+
+/* the formats gnustep-gui can read here: PNG, TIFF (libtiff) and JPEG (libjpeg-turbo, build_libjpeg.sh) */
+BOOL
+MilanIsPictureExtension(NSString *e)
+{
+	e = [e lowercaseString];
+	return [e isEqualToString: @"png"] || [e isEqualToString: @"tif"] || [e isEqualToString: @"tiff"]
+	    || [e isEqualToString: @"jpg"] || [e isEqualToString: @"jpeg"];
+}
 
 static NSString *const kPath = @"MilanWallpaperPath", *kFill = @"MilanWallpaperFill", *kColor = @"MilanWallpaperColor";
 
@@ -74,7 +84,7 @@ defaultColor(void)
 	[canvas lockFocus];
 	[color set];
 	NSRectFill(NSMakeRect(0, 0, size.width, size.height));
-	pic = [imagePath length] ? [[[NSImage alloc] initWithContentsOfFile: imagePath] autorelease] : nil;
+	pic = [imagePath length] ? MilanLoadImage(imagePath) : nil;
 	if (pic && [pic size].width > 0 && [pic size].height > 0) {
 		CGFloat sx, sy, s;
 		ps = [pic size];
@@ -116,8 +126,7 @@ defaultColor(void)
 	pics = [NSHomeDirectory() stringByAppendingPathComponent: @"Pictures"];
 	for (n in [[fm contentsOfDirectoryAtPath: pics error: NULL] sortedArrayUsingSelector: @selector(compare:)]) {
 		NSString *e = [[n pathExtension] lowercaseString];
-		if ([e isEqualToString: @"png"] || [e isEqualToString: @"tif"] || [e isEqualToString: @"tiff"])
-			[out addObject: [pics stringByAppendingPathComponent: n]];
+		if (MilanIsPictureExtension(e)) [out addObject: [pics stringByAppendingPathComponent: n]];
 	}
 	return out;
 }
@@ -198,7 +207,7 @@ defaultColor(void)
 {
 	NSImage *t = [thumbs objectForKey: p], *src;
 	if (t) return t;
-	src = [[[NSImage alloc] initWithContentsOfFile: p] autorelease];
+	src = MilanLoadImage(p);
 	if (!src) return nil;
 	t = [[[NSImage alloc] initWithSize: NSMakeSize(THUMB_W, THUMB_H)] autorelease];
 	[t lockFocus];
@@ -260,7 +269,7 @@ defaultColor(void)
 	[fm createDirectoryAtPath: pics withIntermediateDirectories: YES attributes: nil error: NULL];
 	for (p in paths) {
 		NSString *e = [[p pathExtension] lowercaseString];
-		if ([e isEqualToString: @"png"] || [e isEqualToString: @"tif"] || [e isEqualToString: @"tiff"])
+		if (MilanIsPictureExtension(e))
 			[fm copyItemAtPath: p toPath: [pics stringByAppendingPathComponent: [p lastPathComponent]] error: NULL];
 	}
 	[self reload];
@@ -366,7 +375,7 @@ static NSWindow *panel;
 		[v addSubview: sw];
 	}
 	t = [[[NSTextField alloc] initWithFrame: NSMakeRect(12, 4, W - 24, 16)] autorelease];
-	[t setStringValue: @"Drop PNG or TIFF pictures here to add them (they are copied to ~/Pictures)."];
+	[t setStringValue: @"Drop PNG, TIFF or JPEG pictures here to add them (they are copied to ~/Pictures)."];
 	[t setEditable: NO]; [t setSelectable: NO]; [t setBezeled: NO]; [t setDrawsBackground: NO];
 	[t setFont: [NSFont systemFontOfSize: 10]]; [t setTextColor: [NSColor disabledControlTextColor]];
 	[t setAutoresizingMask: NSViewMaxYMargin];

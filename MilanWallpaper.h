@@ -3,6 +3,7 @@
 #import <AppKit/AppKit.h>
 
 extern NSString *const MilanWallpaperChanged;
+BOOL MilanIsPictureExtension(NSString *ext);	/* png tif tiff jpg jpeg */
 
 typedef enum { MilanFillFill, MilanFillFit, MilanFillStretch, MilanFillCenter, MilanFillTile } MilanFill;
 

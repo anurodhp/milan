@@ -641,12 +641,11 @@ setEnabledIcon(NSButton *b, BOOL on)
 
 - (void) changeBackground: (id)s { [MilanWallpaperPanel show]; }
 
-/* PNG and TIFF only: GNUstep's gui here links libpng and libtiff, not libjpeg */
+/* PNG, TIFF and JPEG: what gnustep-gui here links (libpng, libtiff, libjpeg) */
 static BOOL
 isPicture(MilanEntry *e)
 {
-	NSString *x = [[e->name pathExtension] lowercaseString];
-	return !e->isDir && ([x isEqualToString: @"png"] || [x isEqualToString: @"tif"] || [x isEqualToString: @"tiff"]);
+	return !e->isDir && MilanIsPictureExtension([e->name pathExtension]);
 }
 
 - (void) setDesktopPicture: (id)s

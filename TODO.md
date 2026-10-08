@@ -34,12 +34,12 @@
   need new fonts (OFL: Noto Sans CJK subset, Noto Emoji monochrome, or GNU Unifont as a last resort). Also unchecked: emoji ZWJ
   sequences, rename/new-folder with non-ASCII, sorting order across scripts.
 
-- JPEG support. GNUstep-gui is built `--disable-jpeg` (`build_gnustep_gui.sh`) and nothing builds libjpeg, so `NSImage`
-  cannot read .jpg/.jpeg: wallpapers, thumbnails and Quick Look are PNG/TIFF only today. Plan: add `build_libjpeg.sh` in the
-  iokit staging tree (libjpeg-turbo: BSD/IJG/zlib licensed, plain C, optional NEON), drop `--disable-jpeg` and rebuild
-  gnustep-gui, optionally rebuild libtiff with JPEG on; then allow .jpg/.jpeg in the wallpaper panel (`MilanWallpaper.m`,
-  `isPicture()` in `MilanWindow.m`), `~/Pictures` scanning and the icon kind table. Also on the list in
-  `docs/webkit-browser-feasibility.md` (libjpeg-turbo, libwebp missing).
+- JPEG: Milan decodes .jpg/.jpeg itself (`MilanImage.m`, libjpeg-turbo, big files at 1/2-1/8 size), so Quick Look, wallpapers and
+  Set as Desktop Picture accept them with the system gnustep-gui as it is. `libjpeg.62.dylib` must be in `/usr/X11/lib` on the
+  image (the iokit PR "libjpeg-turbo + JPEG in gnustep-gui" builds it; the Pi has it from a manual copy). Rebuilding gnustep-gui
+  with JPEG works in staging but loading it in place of the system gui gave a GDNC error here (not investigated); JPEG in
+  `NSImage` for other apps needs that gui deployed. Still to do: NEON SIMD in libjpeg, JPEG thumbnails in the icon view.
+
 - Launching: done with `MilanLauncher` (own launcher; NSWorkspace hands everything to GWorkspace). Still to do: starting an
   app that is already running should activate it instead of starting a second copy (needs a running-process or DO
   check); "Always open with" for apps that do not declare the type; opening several selected files in one app instance;
@@ -74,3 +74,5 @@
   unimplemented class method), and `-precomposedStringWithCanonicalMapping` needs ICU. Both are being added in the libs-base fork
   (branch `nsdata-options-nfc-no-icu`); until the rebuilt libgnustep-base is deployed, Milan uses `+[NSData dataWithContentsOfFile:]`
   and its own `MilanNFC`.
+- Test hygiene: a stale root `gdnc` (left by NSWorkspace launching GWorkspace) makes every Milan start fail with "unable to
+  contact GDNC server" / "Broken pipe"; `kill` it and it restarts on demand.
