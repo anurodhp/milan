@@ -15,6 +15,18 @@
 	return [menuDelegate contentMenu];
 }
 
+/* rounded selection, radius 5, in the same blue as the icon labels */
+- (void) highlightSelectionInClipRect: (NSRect)clip
+{
+	NSIndexSet *rows = [self selectedRowIndexes];
+	NSUInteger i;
+	[[NSColor selectedMenuItemColor] set];
+	for (i = [rows firstIndex]; i != NSNotFound; i = [rows indexGreaterThanIndex: i]) {
+		NSRect r = NSInsetRect([self rectOfRow: (NSInteger)i], 4, 1);
+		if (NSIntersectsRect(r, clip)) [[NSBezierPath bezierPathWithRoundedRect: r xRadius: 5 yRadius: 5] fill];
+	}
+}
+
 - (void) rightMouseDown: (NSEvent *)ev
 {
 	NSMenu *m = [self menuForEvent: ev];
@@ -200,6 +212,14 @@
 }
 
 - (void) tableViewSelectionDidChange: (NSNotification *)n { [delegate contentSelectionChanged]; }
+
+/* white text on the blue selection; the grey detail columns go white too */
+- (void) tableView: (NSTableView *)t willDisplayCell: (id)cell forTableColumn: (NSTableColumn *)c row: (NSInteger)r
+{
+	if (![cell isKindOfClass: [NSTextFieldCell class]]) return;
+	if ([t isRowSelected: r]) [cell setTextColor: [NSColor whiteColor]];
+	else [cell setTextColor: [[c identifier] isEqualToString: @"name"] ? [NSColor controlTextColor] : [NSColor disabledControlTextColor]];
+}
 
 - (void) tableView: (NSTableView *)t didClickTableColumn: (NSTableColumn *)c
 {

@@ -120,6 +120,12 @@
 	return e->isDir && !e->isApp ? @"›" : @"";
 }
 
+- (void) tableView: (NSTableView *)t willDisplayCell: (id)cell forTableColumn: (NSTableColumn *)c row: (NSInteger)r
+{
+	if ([cell isKindOfClass: [NSTextFieldCell class]])
+		[cell setTextColor: [t isRowSelected: r] ? [NSColor whiteColor] : [NSColor controlTextColor]];
+}
+
 - (void) tableViewSelectionDidChange: (NSNotification *)n
 {
 	[owner column: self selectionChanged: [self selectedEntries]];

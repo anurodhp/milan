@@ -20,9 +20,6 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
-- Selection highlights with rounded corners, radius 5, everywhere: the icon view and desktop already do it (tile and label);
-  the list view rows, column-view rows and sidebar rows still use square GNUstep highlights. Match the radius (and the
-  colour) used on the icons, or whatever the rest of the icon set uses.
 - JPEG support. GNUstep-gui is built `--disable-jpeg` (`build_gnustep_gui.sh`) and nothing builds libjpeg, so `NSImage`
   cannot read .jpg/.jpeg: wallpapers, thumbnails and Quick Look are PNG/TIFF only today. Plan: add `build_libjpeg.sh` in the
   iokit staging tree (libjpeg-turbo: BSD/IJG/zlib licensed, plain C, optional NEON), drop `--disable-jpeg` and rebuild

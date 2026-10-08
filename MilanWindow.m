@@ -6,6 +6,7 @@
 #import "MilanInfoPanel.h"
 #import "MilanIcons.h"
 #import "MilanTrash.h"
+#import "MilanListView.h"
 #import "MilanWallpaper.h"
 #include <fcntl.h>
 #include <sys/mount.h>
@@ -149,7 +150,7 @@ setEnabledIcon(NSButton *b, BOOL on)
 		[fav addObject: [NSArray arrayWithObjects: @"Computer", @"/", @"ft-disk", nil]];
 		[fav addObject: [NSArray arrayWithObjects: @"Trash", MilanTrashPath, @"ft-trash", nil]];
 		favorites = [fav retain];
-		sidebarTable = [[NSTableView alloc] initWithFrame: NSMakeRect(0, 0, SIDEBAR_W, 200)];
+		sidebarTable = [[MilanTable alloc] initWithFrame: NSMakeRect(0, 0, SIDEBAR_W, 200)];
 		c = [[[NSTableColumn alloc] initWithIdentifier: @"favicon"] autorelease];
 		[c setWidth: 22];
 		[c setDataCell: [[[NSImageCell alloc] init] autorelease]];
@@ -315,6 +316,12 @@ setEnabledIcon(NSButton *b, BOOL on)
 		return [MilanIcons imageNamed: [f objectAtIndex: 2]];
 	}
 	return [f objectAtIndex: 0];
+}
+
+- (void) tableView: (NSTableView *)t willDisplayCell: (id)cell forTableColumn: (NSTableColumn *)c row: (NSInteger)r
+{
+	if ([cell isKindOfClass: [NSTextFieldCell class]])
+		[cell setTextColor: [t isRowSelected: r] ? [NSColor whiteColor] : [NSColor controlTextColor]];
 }
 
 - (void) tableViewSelectionDidChange: (NSNotification *)n

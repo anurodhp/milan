@@ -26,7 +26,7 @@
 	NSMenu *ctxMenu, *blankMenu;
 	BOOL desktop, savesFrame;
 	NSScrollView *sidebar;
-	NSTableView *sidebarTable;
+	id sidebarTable;	/* a MilanTable */
 	NSArray *favorites;
 	BOOL syncingSidebar;
 }
