@@ -111,7 +111,11 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 		[iv setImage: [MilanIcons iconForEntry: e]];
 		[iv setImageScaling: NSImageScaleProportionallyUpOrDown];
 		[v addSubview: iv];
-		[v addSubview: label(e->name, NSMakeRect(82, H - 48, W - 98, 18), YES, NSLeftTextAlignment)];
+		{
+			NSTextField *nm = label(e->name, NSMakeRect(82, H - 48, W - 98, 18), YES, NSLeftTextAlignment);
+			[nm setSelectable: NO];
+			[v addSubview: nm];
+		}
 		[v addSubview: label([e kind], NSMakeRect(82, H - 66, W - 98, 16), NO, NSLeftTextAlignment)];
 		for (i = 0; i < n; i++) {
 			NSArray *r = [rows objectAtIndex: i];
