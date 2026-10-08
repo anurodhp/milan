@@ -463,17 +463,21 @@ trashHasItems(void)
 
 - (void) buildContextMenu
 {
-	NSArray *t = [NSArray arrayWithObjects: @"Open", @"Get Info", @"Rename…", @"-", @"Cut", @"Copy", @"Paste",
-	              @"-", @"Move to Trash", @"New Folder", nil];
-	SEL sels[] = { @selector(openSelection:), @selector(getInfo:), @selector(renameSelection:), @selector(putBack:), NULL,
-	               @selector(cutFiles:), @selector(copyFiles:), @selector(pasteFiles:), NULL,
-	               @selector(trashSelection:), @selector(newFolder:) };
-	NSUInteger i;
+	const struct { const char *title; SEL action; } items[] = {
+		{ "Open", @selector(openSelection:) }, { "Get Info", @selector(getInfo:) },
+		{ "Rename\xe2\x80\xa6", @selector(renameSelection:) }, { "Put Back", @selector(putBack:) },
+		{ NULL, NULL },
+		{ "Cut", @selector(cutFiles:) }, { "Copy", @selector(copyFiles:) }, { "Paste", @selector(pasteFiles:) },
+		{ NULL, NULL },
+		{ "Move to Trash", @selector(trashSelection:) }, { "New Folder", @selector(newFolder:) },
+	};
+	unsigned i;
 	ctxMenu = [[NSMenu alloc] initWithTitle: @""];
-	for (i = 0; i < [t count]; i++) {
+	for (i = 0; i < sizeof items / sizeof items[0]; i++) {
 		NSMenuItem *it;
-		if (!sels[i]) { [ctxMenu addItem: [NSMenuItem separatorItem]]; continue; }
-		it = (NSMenuItem *)[ctxMenu addItemWithTitle: [t objectAtIndex: i] action: sels[i] keyEquivalent: @""];
+		if (!items[i].title) { [ctxMenu addItem: [NSMenuItem separatorItem]]; continue; }
+		it = (NSMenuItem *)[ctxMenu addItemWithTitle: [NSString stringWithUTF8String: items[i].title]
+		                                      action: items[i].action keyEquivalent: @""];
 		[it setTarget: self];
 	}
 }

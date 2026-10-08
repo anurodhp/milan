@@ -12,6 +12,14 @@
 - A real mouse drag from one window to another (the drop is self-tested with `-MilanMultiTest YES`).
 
 ## Features
+- Launching: verify double-click on an `.app` starts it (`launchApplication:`), and that double-click on a document opens it
+  in its handler (`NSWorkspace openFile:`). GNUstep does have file handlers: apps declare `NSTypes` (extensions, `NSRole`,
+  `NSIcon`) in their Info plist, and NSWorkspace keeps per-extension choices in `~/GNUstep/Library/Services/.GNUstepExtPrefs`
+  (`getBestAppInRole:forExtension:` / `setBestApp:inRole:forExtension:`). Add: "Open With" submenu, "Always open with",
+  and a Get Info row showing the default app for the file's extension.
+- Quick Look: Space bar previews the selected image (and later text) in a floating preview window; Space or Esc closes it;
+  arrow keys move to the next/previous image; scale to fit, decode off the main thread.
+- Remember window position and size per folder: restore them when a folder is opened again (keyed by path, in the preferences; new folders keep the cascade default).
 - Trash: test per-volume trash (`<mount>/.Trashes/<uid>`) on a second volume; Delete Immediately; Empty Trash shortcut.
 - Trash: the merged view only watches the home trash for live refresh.
 - Real mouse-drag test of drag and drop (all three views have it now).
