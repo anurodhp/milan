@@ -47,6 +47,17 @@ Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorit
   - Change Background: "Add Picture..." is covered by dropping files on the panel, putting them in ~/Pictures and "Set as Desktop Picture" in the file menu; an open panel is not planned.
   - (done, untested: needs a display-mode change) the desktop window follows screen-size changes and the wallpaper canvas is rebuilt for the new size.
 
+## Blocked / larger work (parked)
+- Font for CJK, Korean and emoji names (still `?`): needs a decision: Noto Sans CJK subset, Noto Emoji (monochrome) or GNU Unifont.
+- Per-volume trash test: needs a second volume mounted on the Pi.
+- Raise an already-running app instead of refusing; open several selected files in one app instance (needs DO or X support).
+- "Always open with" for apps that do not declare the type.
+- Quick Look: PDF, archives, zoom.
+- NEON SIMD in libjpeg; deploy a JPEG-enabled gnustep-gui (GDNC error).
+- Sidebar: reorder by dragging, eject for volumes, a Volumes section.
+- Desktop: autostart from the Window Maker session; preferences instead of launch arguments.
+- Arabic shaping (HarfBuzz) and a full bidi algorithm.
+
 ## Notes
 - Background work must reach the UI via `MilanRunOnMain()`, not `dispatch_async(main queue)` or
   `dispatch_after` (GNUstep's run loop is not woken by main-queue blocks).
