@@ -129,7 +129,6 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	}
 	[panel makeKeyAndOrderFront: nil];
 	[panel display];
-	if (getenv("MILAN_TRACE")) NSLog(@"info panel frame %@ content %@", NSStringFromRect([panel frame]), NSStringFromRect([[panel contentView] frame]));
 
 	if (e->isDir) {
 		NSString *path = [e->path copy];

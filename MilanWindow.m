@@ -12,6 +12,7 @@
 
 #define BAR_H 40.0
 #define STATUS_H 20.0
+#define SIDEBAR_W 140.0
 
 @implementation MilanWindow
 
@@ -26,8 +27,6 @@ barButton(NSString *title, NSRect r, id target, SEL action, NSString *tip)
 	[b setToolTip: tip];
 	return b;
 }
-
-#define TRACE(s) do { if (getenv("MILAN_TRACE")) NSLog(@"milan: %s", s); } while (0)
 
 static NSButton *
 iconButton(NSString *name, NSRect r, id target, SEL action, NSString *tip)
@@ -74,7 +73,6 @@ setEnabledIcon(NSButton *b, BOOL on)
 	window = [[NSWindow alloc] initWithContentRect: fr
 	    styleMask: NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
 	    backing: NSBackingStoreBuffered defer: NO];
-	TRACE("window created");
 	[window setReleasedWhenClosed: NO];
 	[window setDelegate: self];
 	[window setMinSize: NSMakeSize(480, 280)];
@@ -83,7 +81,6 @@ setEnabledIcon(NSButton *b, BOOL on)
 	/* top panel: navigation, view mode, actions (Lucide glyphs, see tools/make_icons.sh) */
 	bar = [[[NSView alloc] initWithFrame: NSMakeRect(0, NSHeight([cv bounds]) - BAR_H, NSWidth([cv bounds]), BAR_H)] autorelease];
 	[bar setAutoresizingMask: NSViewWidthSizable | NSViewMinYMargin];
-	TRACE("bar created");
 	backBtn = iconButton(@"back", NSMakeRect(x, 6, 30, 28), self, @selector(goBack:), @"Back"); x += 30;
 	fwdBtn = iconButton(@"forward", NSMakeRect(x, 6, 30, 28), self, @selector(goForward:), @"Forward"); x += 30;
 	upBtn = iconButton(@"up", NSMakeRect(x, 6, 30, 28), self, @selector(goUp:), @"Enclosing folder"); x += 42;
@@ -104,7 +101,6 @@ setEnabledIcon(NSButton *b, BOOL on)
 	[modeSeg setTarget: self];
 	[modeSeg setAction: @selector(setViewMode:)];
 	[bar addSubview: modeSeg];
-	TRACE("segmented");
 	{
 		NSString *n[] = { @"newfolder", @"info", @"copy", @"paste", @"trash" };
 		NSString *tip[] = { @"New Folder", @"Get Info", @"Copy", @"Paste", @"Move to Trash" };
@@ -119,11 +115,48 @@ setEnabledIcon(NSButton *b, BOOL on)
 			rx += 34;
 		}
 	}
-	TRACE("action buttons");
 	[cv addSubview: bar];
-	TRACE("bar added");
 
-	host = [[[NSView alloc] initWithFrame: NSMakeRect(0, STATUS_H, NSWidth([cv bounds]), NSHeight([cv bounds]) - BAR_H - STATUS_H)] autorelease];
+	/* favorites sidebar */
+	{
+		NSTableColumn *c;
+		NSMutableArray *fav = [NSMutableArray array];
+		NSString *h = NSHomeDirectory(), *d;
+		NSFileManager *fm = [NSFileManager defaultManager];
+		[fav addObject: [NSArray arrayWithObjects: @"Home", h, @"ft-folder", nil]];
+		for (d in [NSArray arrayWithObjects: @"Desktop", @"Documents", @"Downloads", nil])
+			if ([fm fileExistsAtPath: [h stringByAppendingPathComponent: d]])
+				[fav addObject: [NSArray arrayWithObjects: d, [h stringByAppendingPathComponent: d], @"ft-folder", nil]];
+		[fav addObject: [NSArray arrayWithObjects: @"Applications", @"/Applications", @"ft-app", nil]];
+		[fav addObject: [NSArray arrayWithObjects: @"Computer", @"/", @"ft-disk", nil]];
+		favorites = [fav retain];
+		sidebarTable = [[NSTableView alloc] initWithFrame: NSMakeRect(0, 0, SIDEBAR_W, 200)];
+		c = [[[NSTableColumn alloc] initWithIdentifier: @"favicon"] autorelease];
+		[c setWidth: 22];
+		[c setDataCell: [[[NSImageCell alloc] init] autorelease]];
+		[sidebarTable addTableColumn: c];
+		c = [[[NSTableColumn alloc] initWithIdentifier: @"fav"] autorelease];
+		[c setWidth: SIDEBAR_W - 26];
+		{
+			NSTextFieldCell *tc = [[[NSTextFieldCell alloc] initTextCell: @""] autorelease];
+			[tc setFont: [NSFont systemFontOfSize: 12]];
+			[c setDataCell: tc];
+		}
+		[sidebarTable addTableColumn: c];
+		[sidebarTable setHeaderView: nil];
+		[sidebarTable setRowHeight: 24];
+		[sidebarTable setIntercellSpacing: NSMakeSize(0, 0)];
+		[sidebarTable setDataSource: self];
+		[sidebarTable setDelegate: self];
+		sidebar = [[[NSScrollView alloc] initWithFrame: NSMakeRect(0, STATUS_H, SIDEBAR_W, NSHeight([cv bounds]) - BAR_H - STATUS_H)] autorelease];
+		[sidebar setHasVerticalScroller: YES];
+		[sidebar setAutohidesScrollers: YES];
+		[sidebar setBorderType: NSNoBorder];
+		[sidebar setAutoresizingMask: NSViewHeightSizable];
+		[sidebar setDocumentView: sidebarTable];
+		[cv addSubview: sidebar];
+	}
+	host = [[[NSView alloc] initWithFrame: NSMakeRect(SIDEBAR_W, STATUS_H, NSWidth([cv bounds]) - SIDEBAR_W, NSHeight([cv bounds]) - BAR_H - STATUS_H)] autorelease];
 	[host setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
 	[cv addSubview: host];
 	status = [[[NSTextField alloc] initWithFrame: NSMakeRect(0, 0, NSWidth([cv bounds]), STATUS_H)] autorelease];
@@ -133,31 +166,25 @@ setEnabledIcon(NSButton *b, BOOL on)
 	[status setAutoresizingMask: NSViewWidthSizable | NSViewMaxYMargin];
 	[cv addSubview: status];
 
-	TRACE("status added");
 	views[0] = [[MilanIconView alloc] init];
-	TRACE("icon view");
 	views[1] = [[MilanListView alloc] init];
-	TRACE("list view");
 	views[2] = [[MilanColumnView alloc] init];
 	{
 		int i;
 		for (i = 0; i < 3; i++) [views[i] setDelegate: self];
 	}
-	TRACE("views built");
 	[self buildContextMenu];
-	TRACE("menu built");
 	[self switchToMode: 0];
-	TRACE("mode switched");
 	[self goTo: p];
-	TRACE("went to path");
 	[window makeKeyAndOrderFront: nil];
-	TRACE("window ordered front");
 	return self;
 }
 
 - (void) dealloc
 {
 	int i;
+	[sidebarTable setDataSource: nil]; [sidebarTable setDelegate: nil];
+	[sidebarTable release]; [favorites release];
 	[self stopWatching];
 	for (i = 0; i < 3; i++) { [views[i] setDelegate: nil]; [(id)views[i] release]; }
 	[window setDelegate: nil];
@@ -201,6 +228,23 @@ setEnabledIcon(NSButton *b, BOOL on)
 - (void) goHome: (id)s { [self goTo: NSHomeDirectory()]; }
 - (void) goApplications: (id)s { [self goTo: @"/Applications"]; }
 - (void) goRoot: (id)s { [self goTo: @"/"]; }
+
+/* ---- favorites sidebar ---- */
+
+- (NSInteger) numberOfRowsInTableView: (NSTableView *)t { return [favorites count]; }
+
+- (id) tableView: (NSTableView *)t objectValueForTableColumn: (NSTableColumn *)c row: (NSInteger)r
+{
+	NSArray *f = [favorites objectAtIndex: r];
+	if ([[c identifier] isEqualToString: @"favicon"]) return [MilanIcons imageNamed: [f objectAtIndex: 2]];
+	return [f objectAtIndex: 0];
+}
+
+- (void) tableViewSelectionDidChange: (NSNotification *)n
+{
+	NSInteger r = [sidebarTable selectedRow];
+	if (r >= 0) [self goTo: [[favorites objectAtIndex: r] objectAtIndex: 1]];
+}
 
 /* ---- loading ---- */
 

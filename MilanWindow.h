@@ -2,7 +2,7 @@
 #import <AppKit/AppKit.h>
 #import "MilanContent.h"
 
-@interface MilanWindow : NSObject <NSWindowDelegate, MilanContentDelegate>
+@interface MilanWindow : NSObject <NSWindowDelegate, MilanContentDelegate, NSTableViewDataSource, NSTableViewDelegate>
 {
 	NSWindow *window;
 	NSString *path;
@@ -24,6 +24,9 @@
 	BOOL clipCut;
 	NSInteger clipChange;
 	NSMenu *ctxMenu;
+	NSScrollView *sidebar;
+	NSTableView *sidebarTable;
+	NSArray *favorites;
 }
 - (id) initWithPath: (NSString *)p;
 - (NSWindow *) window;
