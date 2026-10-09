@@ -337,7 +337,9 @@ FWD(putBack) FWD(emptyTrash) FWD(deleteImmediately) FWD(goTrash) FWD(trashSelect
 	}
 }
 
-- (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *)a { return YES; }
+/* Quit when the last Milan window (browser or desktop) is gone, not when the About or Info panel closes: those are the only
+ * windows left to NSApplication when no browser window can become main (gui-src/Source/NSApplication.m:4186). */
+- (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *)a { return [windows count] == 0; }
 
 @end
 
