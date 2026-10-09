@@ -1,4 +1,5 @@
 #import "MilanWallpaper.h"
+#import "MilanRootPixmap.h"
 #import "MilanIcons.h"
 #import "MilanImage.h"
 
@@ -107,6 +108,7 @@ defaultColor(void)
 	[canvas unlockFocus];
 	cache = canvas;
 	cacheSize = size;
+	MilanPublishRootPixmap(canvas, size);	/* so translucent bars can blend over the wallpaper */
 	return cache;
 }
 
