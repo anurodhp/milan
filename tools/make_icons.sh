@@ -1,7 +1,7 @@
 #!/bin/bash
 # Renders the Lucide SVGs (ISC, icons/LICENSE-lucide.txt) in icons/src into the TIFFs Milan draws
-# (every GNUstep reads TIFF): toolbar glyphs in normal/disabled/pressed colours, and the larger
-# coloured file-type icons. The outputs are committed (icons/*.tiff), so the cross build needs none of
+# (every GNUstep reads TIFF): toolbar glyphs in normal/disabled/pressed colors, and the larger
+# colored file-type icons. The outputs are committed (icons/*.tiff), so the cross build needs none of
 # this; it runs on the macOS host only (AppKit rasterises the SVG, sips converts to TIFF).
 #   Usage: tools/make_icons.sh
 set -euo pipefail

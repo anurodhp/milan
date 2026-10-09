@@ -246,9 +246,9 @@ FWD(putBack) FWD(emptyTrash) FWD(deleteImmediately) FWD(goTrash) FWD(trashSelect
 	    @"A small, fast file manager for GNUstep.", @"ApplicationDescription",
 	    @"0.4", @"ApplicationRelease",
 	    [NSArray arrayWithObject: @"Anurodh Pokharel"], @"Authors",
-	    @"Copyright \u00a9 2026 Anurodh Pokharel. MIT licence.", @"Copyright",
+	    @"Copyright \u00a9 2026 Anurodh Pokharel. MIT license.", @"Copyright",
 	    @"Hexley DarwinOS Mascot Copyright 2000 by Jon Hooper. All Rights Reserved. "
-	    @"Toolbar and file icons are from Lucide (lucide.dev), copyright \u00a9 Lucide Contributors, ISC licence.",
+	    @"Toolbar and file icons are from Lucide (lucide.dev), copyright \u00a9 Lucide Contributors, ISC license.",
 	    @"CopyrightDescription",
 	    nil];
 	[NSApp orderFrontStandardAboutPanelWithOptions: opts];

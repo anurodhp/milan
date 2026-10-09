@@ -32,5 +32,5 @@ this repository):
   Mesa (libGL)               MIT          (c) Mesa authors
 
 Linking the LGPL GNUstep libraries dynamically leaves rome's own code under
-the MIT licence above; a distribution of Rome.app with those libraries must
+the MIT license above; a distribution of Rome.app with those libraries must
 follow the LGPL for them.

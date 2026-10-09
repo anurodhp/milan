@@ -4,5 +4,5 @@
  * right-to-left rule, no full bidi algorithm). Arabic is NOT shaped (no contextual forms), so it shows as isolated letters. */
 #import <AppKit/AppKit.h>
 
-/* `attrs` are applied to the whole string (font, colour, paragraph style); only the font changes per run. */
+/* `attrs` are applied to the whole string (font, color, paragraph style); only the font changes per run. */
 NSAttributedString *MilanDisplayString(NSString *s, NSDictionary *attrs);

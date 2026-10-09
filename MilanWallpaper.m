@@ -213,6 +213,13 @@ defaultColor(void)
 	if (!src) return nil;
 	t = [[[NSImage alloc] initWithSize: NSMakeSize(THUMB_W, THUMB_H)] autorelease];
 	[t lockFocus];
+	{	/* MilanThumbView is flipped and an NSImage drawn into a flipped view comes out upside down (setFlipped: has no effect on
+		 * this back end), so the thumbnail is made upside down on purpose */
+		NSAffineTransform *flip = [NSAffineTransform transform];
+		[flip translateXBy: 0 yBy: THUMB_H];
+		[flip scaleXBy: 1 yBy: -1];
+		[flip concat];
+	}
 	[src drawInRect: NSMakeRect(0, 0, THUMB_W, THUMB_H) fromRect: NSZeroRect operation: NSCompositeCopy fraction: 1.0];
 	[t unlockFocus];
 	[thumbs setObject: t forKey: p];
@@ -243,7 +250,7 @@ defaultColor(void)
 		}
 		[[NSColor colorWithCalibratedWhite: 0.5 alpha: 1] set];
 		NSFrameRect(r);
-		[(p ? [[p lastPathComponent] stringByDeletingPathExtension] : @"Solid colour") drawInRect: NSMakeRect(r.origin.x, NSMaxY(r) + 3, r.size.width, 14) withAttributes: a];
+		[(p ? [[p lastPathComponent] stringByDeletingPathExtension] : @"Solid color") drawInRect: NSMakeRect(r.origin.x, NSMaxY(r) + 3, r.size.width, 14) withAttributes: a];
 	}
 }
 
@@ -368,7 +375,7 @@ static NSWindow *panel;
 	[v addSubview: seg];
 
 	t = [[[NSTextField alloc] initWithFrame: NSMakeRect(12, 30, 60, 18)] autorelease];
-	[t setStringValue: @"Colour:"]; [t setEditable: NO]; [t setSelectable: NO]; [t setBezeled: NO]; [t setDrawsBackground: NO];
+	[t setStringValue: @"Color:"]; [t setEditable: NO]; [t setSelectable: NO]; [t setBezeled: NO]; [t setDrawsBackground: NO];
 	[t setFont: [NSFont systemFontOfSize: 11]]; [t setAutoresizingMask: NSViewMaxYMargin];
 	[v addSubview: t];
 	{

@@ -19,11 +19,11 @@ Xlib calls because GNUstep has no shape API. Drawing the wallpaper ourselves is 
 
 ## Milestones
 1. **Spike (half a day).** `-MilanDesktop YES`: a full-screen `NSWindow` at `NSDesktopWindowLevel`,
-   `NSBorderlessWindowMask`, filled with a colour. Verify on the Pi: sits below everything, no decoration,
+   `NSBorderlessWindowMask`, filled with a color. Verify on the Pi: sits below everything, no decoration,
    visible on every workspace, does not appear in the window list, other windows and the dock stay on top,
    size matches the real screen (`NSScreen` frame, 1280x720).
 2. **Wallpaper.** Draw an image scaled once to the screen size and cached (`MilanWallpaper`); default
-   `MilanWallpaper` path preference, solid-colour fallback. Redraw only on screen-size change (RANDR).
+   `MilanWallpaper` path preference, solid-color fallback. Redraw only on screen-size change (RANDR).
 3. **Desktop icons.** Reuse `MilanIconGrid` over `~/Desktop` with a transparent background and light label
    text (a `desktop` drawing mode), kqueue live refresh as in the browser windows. Drag/drop, rubber band,
    open and Get Info all come from the existing grid. Icon positions persisted per item (a plist in

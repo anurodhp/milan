@@ -1,4 +1,4 @@
-/* MilanWallpaper: the desktop background (a colour, optionally an image placed by a fill mode), the view
+/* MilanWallpaper: the desktop background (a color, optionally an image placed by a fill mode), the view
  * that draws it, and the "Desktop Background" panel (right-click the desktop > Change Background). */
 #import <AppKit/AppKit.h>
 
@@ -16,7 +16,7 @@ typedef enum { MilanFillFill, MilanFillFit, MilanFillStretch, MilanFillCenter, M
 	NSSize cacheSize;
 }
 + (MilanWallpaper *) shared;
-- (NSString *) imagePath;	/* nil: a plain colour */
+- (NSString *) imagePath;	/* nil: a plain color */
 - (NSColor *) color;
 - (MilanFill) fill;
 - (void) setImagePath: (NSString *)p fill: (MilanFill)f color: (NSColor *)c;	/* saves and notifies */
