@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/header.png" alt="Milan drawing the desktop on a Raspberry Pi 3 (wallpaper and Trash), with the Naples menu bar and dock" width="100%"></p>
+<p align="center"><img src="docs/header.png" alt="Milan on a Raspberry Pi 3: a browser window on Applications over the desktop it draws, with the Naples menu bar and dock" width="100%"></p>
 
 # Milan
 
