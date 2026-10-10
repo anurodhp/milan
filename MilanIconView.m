@@ -231,10 +231,10 @@ cellKey(NSInteger c, NSInteger r) { return [NSNumber numberWithInteger: c * 1000
 				shadow = [[NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 11], NSFontAttributeName,
 				    ps, NSParagraphStyleAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, nil] retain];
 			}
-			[MilanDisplayString([e displayName], shadow) drawInRect: NSOffsetRect(tr, 1, 1)];
-			[MilanDisplayString([e displayName], white) drawInRect: tr];
+			[MilanFittedDisplayString([e displayName], shadow, tr.size.width) drawInRect: NSOffsetRect(tr, 1, 1)];
+			[MilanFittedDisplayString([e displayName], white, tr.size.width) drawInRect: tr];
 		} else
-			[MilanDisplayString([e displayName], s ? selAttrs : attrs) drawInRect: tr];
+			[MilanFittedDisplayString([e displayName], s ? selAttrs : attrs, tr.size.width) drawInRect: tr];
 	}
 	if (rubber) {
 		[[[NSColor selectedMenuItemColor] colorWithAlphaComponent: 0.2] set];

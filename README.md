@@ -15,12 +15,12 @@ It can also draw the desktop (wallpaper, icons, Trash and volumes), next to the 
 - Quick Look (space bar) for images (PNG, TIFF, JPEG), text and folders. Images show as thumbnails in place of the generic icon.
 - Open files with their application, Open With, and launch apps (Milan has its own launcher and refuses to start an app twice).
 - The desktop (`-MilanDesktop YES`): wallpaper in several fill modes, draggable icons whose positions are remembered, Trash and mounted volumes, a right-click menu and a Change Background panel. Set as Desktop Picture works from the file menu. The wallpaper is also published as `_XROOTPMAP_ID` so translucent bars can blend over it.
-- Names in Latin, Greek, Cyrillic and Hebrew are shown correctly (Inter, with DejaVu Sans as a per-run fallback), normalized to NFC so accents compose.
+- Names in many scripts: Latin, Greek and Cyrillic in Inter; Hebrew and Arabic in DejaVu Sans; Chinese, Japanese and Korean in Noto Sans CJK (the Japanese or Korean face when the name has kana or Hangul), with GNU Unifont as the last resort. The font is chosen per run of characters, so mixed names such as `Report 報告 2026` work, in the views, the status bar, Get Info and Quick Look. Names are normalized to NFC so accents compose. Long names are shortened in the middle in icon view.
 - JPEG decoding (libjpeg-turbo, large files at reduced size), so images work with the stock gnustep-gui.
 
 ## What you cannot do (yet)
 
-- No CJK, Korean or emoji in names: no font on the image has them, so they show as `?`. Arabic shows as isolated letters (no shaping), and there is no full bidi algorithm for mixed left-to-right and right-to-left names.
+- Emoji and other characters outside the Basic Multilingual Plane show as `?`: gnustep-gui passes characters to the font as 16-bit values. Window titles show CJK as boxes (the theme draws them in the UI font). Arabic shows as isolated letters (no shaping), and there is no full bidi algorithm for mixed left-to-right and right-to-left names.
 - Quick Look has no PDF, archives or zoom.
 - No reordering of favorites by dragging, no eject, no Volumes section in the sidebar.
 - No toolbar customization, no tags, no search.
@@ -33,7 +33,7 @@ The full list is in `TODO.md`.
 
 ## What has been tested
 
-On a real Raspberry Pi 3, with real input injected through X (`xinject`): sidebar clicks, rubber band, menu-bar and context menus, Get Info, Open With and double-click launching, Quick Look, list-header sorting, all in-window dialogs (Empty Trash, Rename, Delete Immediately), drag to the Trash, drag between windows, drag icons on the desktop, desktop preferences, the wallpaper chooser, type-to-select, Put Back, favorites and image thumbnails. The in-app self test is `Milan -MilanSelfTest YES`.
+On a real Raspberry Pi 3, with a real mouse and keyboard, and with input injected through X (`xinject`) for scripted runs: sidebar clicks, rubber band, menu-bar and context menus, Get Info, Open With and double-click launching, Quick Look, list-header sorting, all in-window dialogs (Empty Trash, Rename, Delete Immediately), drag to the Trash, drag between windows, drag icons on the desktop, desktop preferences, the wallpaper chooser, type-to-select, Put Back, favorites and image thumbnails. The in-app self test is `Milan -MilanSelfTest YES`.
 
 Not exercised with real input: the look of the sort arrows, drag and drop inside the column view. Not measured: memory use and speed on large folders.
 
@@ -52,7 +52,7 @@ Then, from this directory:
 ./build.sh deploy     # build, then copy Milan.app to the Pi
 ```
 
-`deploy` uses `DEPLOY_HOST` (default `root@10.0.0.142`).
+`deploy` uses `DEPLOY_HOST` (default `root@10.0.0.142`). It stops Milan on the Pi before replacing it (replacing a running app's files has taken the X session down) and does not start it again: log out and in, or start it by hand.
 
 ## Running and testing
 
@@ -63,7 +63,8 @@ On the Pi, Milan is `/Applications/Milan.app`. Settings are GNUstep defaults or 
 | `MilanDesktop` | `YES` draws the desktop (wallpaper, icons) |
 | `MilanOpenBrowser` | `NO` starts without opening a browser window |
 | `MilanViewMode` | initial view: 0 icons, 1 list, 2 columns |
-| `MilanOrigin`, `MilanInfo` | open at a path, open an info panel at start |
+| `MilanStartPath` | open the first window at this folder |
+| `MilanOrigin`, `MilanInfo` | first window position (`x,y`), open an info panel at start |
 | `MilanSelfTest` | `YES` runs the self test |
 | `MilanMultiTest` | `YES` runs the multi-window test |
 

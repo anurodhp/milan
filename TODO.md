@@ -17,10 +17,12 @@ Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorit
 - Unicode (validated on the Pi with `/tmp/uni`): the UI font is Inter (covers Latin, Greek, Cyrillic). Names are shown NFC
   (accents compose; `MilanNFC.m` and the libs-base fork). Hebrew and Arabic fall back to DejaVu Sans per run (`MilanText.m`),
   Hebrew is reversed into visual order and reads correctly; Arabic has no contextual shaping so it shows as isolated letters
-  (needs HarfBuzz). **Still `?`: CJK, Korean, emoji**: no font on the image has them, and GNUstep draws "?" for a missing glyph.
-  Needs a font decision (OFL: Noto Sans CJK subset, Noto Emoji monochrome, or GNU Unifont as a last resort). The fallback is used in
-  the icon, list and column views; window titles, the info panel and Quick Look titles still use the plain string. Also unchecked:
-  ZWJ emoji sequences, a full bidi algorithm for mixed LTR/RTL names, sorting order across scripts.
+  (needs HarfBuzz). Chinese, Japanese and Korean fall back to Noto Sans CJK (SC; JP when the name has kana, KR with Hangul) and
+  then GNU Unifont, verified on the Pi 2026-10-10 in list and icon view, the status bar and Get Info. The fallback is used in the
+  views, the status bar, Get Info and Quick Look; window titles still use the plain string (the theme draws them: CJK shows as
+  boxes). **Emoji still `?`**: gnustep-gui NSGlyphGenerator.m:115 calls -glyphForCharacter: with a unichar, so a code point
+  above U+FFFF is truncated before it reaches the font (needs a gui fix). Also unchecked: a full bidi algorithm for mixed
+  LTR/RTL names, sorting order across scripts.
 
 - JPEG: Milan decodes .jpg/.jpeg itself (`MilanImage.m`, libjpeg-turbo, big files at 1/2-1/8 size), so Quick Look, wallpapers and
   Set as Desktop Picture accept them with the system gnustep-gui as it is. `libjpeg.62.dylib` must be in `/usr/X11/lib` on the
@@ -48,7 +50,14 @@ Preferences toggle, wallpaper chooser, type-to-select, Put Back, sidebar favorit
   - (done, untested: needs a display-mode change) the desktop window follows screen-size changes and the wallpaper canvas is rebuilt for the new size.
 
 ## Blocked / larger work (parked)
-- Font for CJK, Korean and emoji names (still `?`): needs a decision: Noto Sans CJK subset, Noto Emoji (monochrome) or GNU Unifont.
+- **Fix GNUstep and Eau for the remaining Unicode gaps** (the fixes belong in the forks iokit builds, not in Milan):
+  - gnustep-gui: `NSGlyphGenerator.m` types `-glyphForCharacter:` as taking a `unichar` (line 115) and passes the code point it
+    just assembled from a surrogate pair, so anything above U+FFFF (emoji) is truncated to 16 bits before it reaches the font.
+    Needs a 32-bit lookup path through the cairo backend (`CairoFontInfo`, FreeType `FT_Get_Char_Index` already takes 32 bits).
+    Noto Emoji is already on the image; Milan's `MilanText.m` keeps surrogate pairs together, so names will follow once gui does.
+  - gnustep-eau-theme: window titles are drawn as a plain string in the UI font, so CJK titles show boxes. The title drawing
+    needs the same per-run font fallback (or the fallback should move into gnustep-back's cairo font code, which would fix every
+    app and let Milan drop most of `MilanText.m`).
 - Per-volume trash test: needs a second volume mounted on the Pi.
 - Raise an already-running app instead of refusing; open several selected files in one app instance (needs DO or X support).
 - "Always open with" for apps that do not declare the type.

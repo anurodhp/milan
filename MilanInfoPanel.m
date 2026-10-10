@@ -1,4 +1,5 @@
 #import "MilanInfoPanel.h"
+#import "MilanText.h"
 #import "MilanIcons.h"
 #import "MilanLauncher.h"
 #include <dirent.h>
@@ -65,6 +66,13 @@ label(NSString *s, NSRect r, BOOL bold, NSTextAlignment al)
 	[t setAlignment: al];
 	[t setFont: bold ? [NSFont boldSystemFontOfSize: 11] : [NSFont systemFontOfSize: 11]];
 	[[t cell] setLineBreakMode: NSLineBreakByTruncatingMiddle];
+	if (s) {	/* names in scripts the UI font lacks (Hebrew, CJK, ...) take a fallback font per run */
+		NSMutableParagraphStyle *ps = [[[NSMutableParagraphStyle alloc] init] autorelease];
+		[ps setAlignment: al];
+		[ps setLineBreakMode: NSLineBreakByTruncatingMiddle];
+		[t setAttributedStringValue: MilanDisplayString(s, [NSDictionary dictionaryWithObjectsAndKeys: [t font], NSFontAttributeName,
+		                                                    ps, NSParagraphStyleAttributeName, nil])];
+	}
 	return t;
 }
 

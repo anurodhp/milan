@@ -1,4 +1,5 @@
 #import "MilanWindow.h"
+#import "MilanText.h"
 #import "MilanIconView.h"
 #import "MilanListView.h"
 #import "MilanColumnView.h"
@@ -615,7 +616,11 @@ static NSString *const kUserFavorites = @"MilanSidebarFavorites";
 	NSUInteger n = [s count];
 	if (n == 1) {
 		MilanEntry *e = [s objectAtIndex: 0];
-		[status setStringValue: [NSString stringWithFormat: @"%@ – %@", [e displayName], e->isDir ? [e kind] : [e sizeString]]];
+		NSMutableParagraphStyle *ps = [[[NSMutableParagraphStyle alloc] init] autorelease];
+		[ps setAlignment: NSCenterTextAlignment];
+		/* the name may need a fallback font (CJK, Hebrew, ...) */
+		[status setAttributedStringValue: MilanDisplayString([NSString stringWithFormat: @"%@ – %@", [e displayName], e->isDir ? [e kind] : [e sizeString]],
+		    [NSDictionary dictionaryWithObjectsAndKeys: [status font], NSFontAttributeName, ps, NSParagraphStyleAttributeName, nil])];
 	} else if (n)
 		[status setStringValue: [NSString stringWithFormat: @"%lu of %lu selected", (unsigned long)n, (unsigned long)[entries count]]];
 	else

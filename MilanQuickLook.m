@@ -1,4 +1,5 @@
 #import "MilanQuickLook.h"
+#import "MilanText.h"
 #import "MilanIcons.h"
 #import "MilanWallpaper.h"
 #import "MilanImage.h"
@@ -87,11 +88,12 @@ isTextExt(NSString *x)
 	    [NSColor whiteColor], NSForegroundColorAttributeName, nil];
 	NSDictionary *st = [NSDictionary dictionaryWithObjectsAndKeys: [NSFont systemFontOfSize: 11], NSFontAttributeName,
 	    [NSColor colorWithCalibratedWhite: 0.75 alpha: 1], NSForegroundColorAttributeName, nil];
-	NSString *title = [entry displayName], *sub;
-	NSSize ts = [title sizeWithAttributes: tt];
+	NSAttributedString *title = MilanDisplayString([entry displayName], tt);
+	NSString *sub;
+	NSSize ts = [title size];
 	[[NSColor colorWithCalibratedWhite: 0.10 alpha: 1] set];
 	NSRectFill(b);
-	[title drawAtPoint: NSMakePoint(NSMidX(b) - ts.width / 2, 12) withAttributes: tt];
+	[title drawAtPoint: NSMakePoint(NSMidX(b) - ts.width / 2, 12)];
 	if (image && [image size].width > 0) {
 		NSSize is = [image size];
 		CGFloat s = MIN(MIN(box.size.width / is.width, box.size.height / is.height), 3.0);	/* small images are scaled up, to 3x */
