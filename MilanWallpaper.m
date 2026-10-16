@@ -31,22 +31,50 @@ defaultColor(void)
 	return w;
 }
 
-- (id) init
+/* the settings as saved; no path and no color saved yet is the first run's picture */
+- (void) loadDefaults
 {
 	NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 	NSArray *c = [d arrayForKey: kColor];
 	NSString *p = [d stringForKey: kPath];
-	self = [super init];
+	[color release];
 	if ([c count] == 3)
 		color = [[NSColor colorWithCalibratedRed: [[c objectAtIndex: 0] floatValue] green: [[c objectAtIndex: 1] floatValue]
 		                                    blue: [[c objectAtIndex: 2] floatValue] alpha: 1] retain];
 	else
 		color = [defaultColor() retain];
 	fill = [d objectForKey: kFill] ? (MilanFill)[d integerForKey: kFill] : MilanFillFill;
+	[imagePath release];
+	imagePath = nil;
 	if (p) imagePath = [p copy];
 	else if (![d objectForKey: kColor]) {
-		NSString *dp = [[NSBundle mainBundle] pathForResource: @"wp-aurora" ofType: @"png"];	/* the first run's picture */
+		NSString *dp = [[NSBundle mainBundle] pathForResource: @"wp-aurora" ofType: @"png"];
 		if (dp) imagePath = [dp copy];
+	}
+	[cache release];
+	cache = nil;
+}
+
+/* Another program changed the settings (Turin's Background pane writes them into Milan's defaults and posts
+ * MilanWallpaperChanged as a distributed notification): read them again and redraw. Milan's own posts name it. */
+- (void) changedElsewhere: (NSNotification *)n
+{
+	if ([[n object] isEqual: @"Milan"]) return;
+	[[NSUserDefaults standardUserDefaults] synchronize];	/* re-reads the defaults file the other program wrote */
+	[self loadDefaults];
+	[[NSNotificationCenter defaultCenter] postNotificationName: MilanWallpaperChanged object: self];
+}
+
+- (id) init
+{
+	self = [super init];
+	[self loadDefaults];
+	/* gnustep-base raises when it cannot reach or start gdnc; the desktop then only follows Milan's own panel */
+	@try {
+		[[NSDistributedNotificationCenter defaultCenter] addObserver: self selector: @selector(changedElsewhere:)
+		                                                        name: MilanWallpaperChanged object: nil];
+	} @catch (NSException *e) {
+		NSLog(@"Milan: no distributed notifications (%@)", [e reason]);
 	}
 	return self;
 }
@@ -59,8 +87,14 @@ defaultColor(void)
 {
 	NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 	NSColor *rgb = [c colorUsingColorSpaceName: NSCalibratedRGBColorSpace];
-	[imagePath release]; imagePath = [p copy];
-	[color release]; color = [c retain];
+	{	/* p and c are often the current values (the placement control passes both): take the new ones first */
+		NSString *op = imagePath;
+		NSColor *oc = color;
+		imagePath = [p copy];
+		color = [c retain];
+		[op release];
+		[oc release];
+	}
 	fill = f;
 	[cache release]; cache = nil;
 	if (p) [d setObject: p forKey: kPath]; else [d setObject: @"" forKey: kPath];
@@ -71,6 +105,11 @@ defaultColor(void)
 		      forKey: kColor];
 	[d synchronize];
 	[[NSNotificationCenter defaultCenter] postNotificationName: MilanWallpaperChanged object: self];
+	/* and other programs showing it (Turin's Background pane) */
+	@try {
+		[[NSDistributedNotificationCenter defaultCenter] postNotificationName: MilanWallpaperChanged object: @"Milan" userInfo: nil
+		                                                   deliverImmediately: YES];
+	} @catch (NSException *e) {}
 }
 
 /* Places the picture on a canvas the size of the desktop once, so redraws are one blit. */
@@ -183,10 +222,12 @@ defaultColor(void)
 	thumbs = [[NSMutableDictionary alloc] init];
 	[self registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
 	[self reload];
+	[[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(changed:) name: MilanWallpaperChanged object: nil];
 	return self;
 }
 
-- (void) dealloc { [pictures release]; [thumbs release]; [super dealloc]; }
+- (void) dealloc { [[NSNotificationCenter defaultCenter] removeObserver: self]; [pictures release]; [thumbs release]; [super dealloc]; }
+- (void) changed: (NSNotification *)n { [self setNeedsDisplay: YES]; }
 - (BOOL) isFlipped { return YES; }
 
 - (NSInteger) perRow { return MAX(1, (NSInteger)((NSWidth([self bounds]) - THUMB_GAP) / (THUMB_W + THUMB_GAP))); }
